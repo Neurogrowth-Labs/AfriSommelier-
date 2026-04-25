@@ -1,65 +1,99 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ChevronRight, Activity, Droplet, Calendar, Plus } from 'lucide-react';
-import { collection, query, onSnapshot, where, orderBy } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase, toCamelList } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../utils/supabaseErrorHandler';
 import EventModal from './EventModal';
 
 export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void }) {
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [glassesThisWeek, setGlassesThisWeek] = useState(0);
   const [caloriesThisWeek, setCaloriesThisWeek] = useState(0);
   const [events, setEvents] = useState<any[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!user) return;
+    const userId = user.id;
 
-    // Get date for 7 days ago
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoIso = oneWeekAgo.toISOString();
 
-    const q = query(
-      collection(db, `users/${auth.currentUser.uid}/consumption`),
-      where('date', '>=', oneWeekAgo.toISOString())
-    );
+    const loadConsumption = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('consumption')
+          .select('calories,date')
+          .eq('user_id', userId)
+          .gte('date', oneWeekAgoIso);
+        if (error) throw error;
+        let glasses = 0;
+        let calories = 0;
+        for (const row of data ?? []) {
+          glasses += 1;
+          calories += Number(row.calories) || 120;
+        }
+        setGlassesThisWeek(glasses);
+        setCaloriesThisWeek(calories);
+      } catch (error) {
+        try {
+          handleSupabaseError(error, OperationType.GET, `consumption for ${userId}`, userId);
+        } catch {
+          /* logged */
+        }
+      }
+    };
 
-    const unsubscribeConsumption = onSnapshot(q, (snapshot) => {
-      let glasses = 0;
-      let calories = 0;
-      snapshot.forEach((doc) => {
-        glasses += 1;
-        calories += Number(doc.data().calories) || 120;
-      });
-      setGlassesThisWeek(glasses);
-      setCaloriesThisWeek(calories);
-    }, (error) => {
-      import('../utils/firestoreErrorHandler').then(({ handleFirestoreError, OperationType }) => {
-        handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser?.uid}/consumption`);
-      });
-    });
+    const loadEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('user_id', userId)
+          .order('date', { ascending: true });
+        if (error) throw error;
+        const fetched = toCamelList<any>(data);
+        const today = new Date().toISOString().split('T')[0];
+        setEvents(fetched.filter((e) => e.date >= today));
+      } catch (error) {
+        try {
+          handleSupabaseError(error, OperationType.GET, `events for ${userId}`, userId);
+        } catch {
+          /* logged */
+        }
+      }
+    };
 
-    // Fetch Events
-    const qEvents = query(
-      collection(db, `users/${auth.currentUser.uid}/events`),
-      orderBy('date', 'asc')
-    );
+    loadConsumption();
+    loadEvents();
 
-    const unsubscribeEvents = onSnapshot(qEvents, (snapshot) => {
-      const fetchedEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      // Filter out past events
-      const today = new Date().toISOString().split('T')[0];
-      setEvents(fetchedEvents.filter(e => e.date >= today));
-    }, (error) => {
-      import('../utils/firestoreErrorHandler').then(({ handleFirestoreError, OperationType }) => {
-        handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser?.uid}/events`);
-      });
-    });
+    // Real-time subscriptions
+    const consumptionChannel = supabase
+      .channel(`home-consumption-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'consumption', filter: `user_id=eq.${userId}` },
+        () => loadConsumption()
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel(`home-events-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events', filter: `user_id=eq.${userId}` },
+        () => loadEvents()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribeConsumption();
-      unsubscribeEvents();
+      supabase.removeChannel(consumptionChannel);
+      supabase.removeChannel(eventsChannel);
     };
-  }, []);
+  }, [user, supabase]);
 
   return (
     <div className="pb-32 w-full max-w-5xl mx-auto">
@@ -69,7 +103,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
           onClick={() => onNavigate('profile')}
           className="w-10 h-10 rounded-full overflow-hidden border border-glass-border hover:scale-105 transition-transform"
         >
-          <img src={auth.currentUser?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <img src={user?.imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </button>
         <div className="w-10 h-10 rounded-full glass-panel flex items-center justify-center">
           <div className="w-2 h-2 bg-gold-500 rounded-full"></div>
@@ -83,7 +117,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
           animate={{ opacity: 1, y: 0 }}
           className="text-4xl md:text-5xl font-serif font-semibold mb-2"
         >
-          Good evening, {auth.currentUser?.displayName?.split(' ')[0] || 'Friend'} <span className="text-transparent text-shadow-sm">🍷</span>
+          Good evening, {user?.firstName || user?.fullName?.split(' ')[0] || 'Friend'} <span className="text-transparent text-shadow-sm">🍷</span>
         </motion.h1>
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
@@ -203,11 +237,11 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
 
       <Section title="Trending in SA" onSeeAll={() => onNavigate('trending')} />
       <div className="flex overflow-x-auto hide-scrollbar px-6 gap-4 mb-12">
-        <TrendingCard 
-          name="Hamilton Russell" 
-          type="Pinot Noir" 
-          price="R 850" 
-          image="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop" 
+        <TrendingCard
+          name="Hamilton Russell"
+          type="Pinot Noir"
+          price="R 850"
+          image="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop"
           onClick={() => onSelectWine({
             name: "Hamilton Russell",
             vintage: "2021",
@@ -215,11 +249,11 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
             image: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop"
           })}
         />
-        <TrendingCard 
-          name="Sadie Family" 
-          type="Columella" 
-          price="R 1,200" 
-          image="https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400&auto=format&fit=crop" 
+        <TrendingCard
+          name="Sadie Family"
+          type="Columella"
+          price="R 1,200"
+          image="https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400&auto=format&fit=crop"
           onClick={() => onSelectWine({
             name: "Sadie Family Columella",
             vintage: "2020",

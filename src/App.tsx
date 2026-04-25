@@ -5,9 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Home, Compass, ScanLine, MessageSquare, Grape } from 'lucide-react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDocFromCache, getDocFromServer } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { useUser, AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
+import { useSupabase } from './lib/supabase';
 import HomeTab from './components/HomeTab';
 import DiscoverTab from './components/DiscoverTab';
 import ScanTab from './components/ScanTab';
@@ -23,29 +22,33 @@ import PairingEngine from './components/PairingEngine';
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedWine, setSelectedWine] = useState<any>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { isLoaded, isSignedIn, user } = useUser();
+  const supabase = useSupabase();
   const [initialDiscoverState, setInitialDiscoverState] = useState<any>(null);
   const [initialChatState, setInitialChatState] = useState<{ role: 'user' | 'model', text: string } | null>(null);
 
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. ");
-        }
-      }
-    }
-    testConnection();
+  // OAuth callback handling — Clerk redirects back to /sso-callback after Google sign-in.
+  const isSsoCallback = typeof window !== 'undefined' && window.location.pathname.startsWith('/sso-callback');
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  // Make sure a row exists in public.users for the signed-in Clerk user
+  // so that taste_dna and other tables can use it as a foreign key.
+  useEffect(() => {
+    if (!isSignedIn || !user) return;
+    const ensureUserRow = async () => {
+      try {
+        await supabase.from('users').upsert(
+          {
+            user_id: user.id,
+            email: user.primaryEmailAddress?.emailAddress ?? null,
+          },
+          { onConflict: 'user_id', ignoreDuplicates: false }
+        );
+      } catch (error) {
+        console.error('Failed to upsert user row', error);
+      }
+    };
+    ensureUserRow();
+  }, [isSignedIn, user, supabase]);
 
   useEffect(() => {
     // Handle Smart Redirect Links
@@ -87,11 +90,15 @@ export default function App() {
     }
   }, []);
 
-  if (loading) {
+  if (isSsoCallback) {
+    return <AuthenticateWithRedirectCallback signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/" />;
+  }
+
+  if (!isLoaded) {
     return <div className="min-h-screen bg-wine-900 flex items-center justify-center text-gold-500">Loading...</div>;
   }
 
-  if (!user) {
+  if (!isSignedIn) {
     return <LoginScreen />;
   }
 

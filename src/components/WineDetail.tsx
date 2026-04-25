@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, Heart, Share, Star, Leaf, Activity, Droplet, Edit3, Check, ShoppingCart, Music, Image as ImageIcon, Loader2, Tag } from 'lucide-react';
-import { collection, addDoc, deleteDoc, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
-import { GoogleGenAI, Modality } from '@google/genai';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase, toSnake } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../utils/supabaseErrorHandler';
 import LogGlassModal from './LogGlassModal';
 
 export default function WineDetail({ wine, onClose }: { wine: any, onClose: () => void }) {
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistDocId, setWishlistDocId] = useState<string | null>(null);
   const [personalNotes, setPersonalNotes] = useState(wine.personalNotes || '');
@@ -27,28 +28,33 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
 
   useEffect(() => {
     const checkWishlist = async () => {
-      if (!auth.currentUser || !wine.name) return;
+      if (!user || !wine.name) return;
       try {
-        const q = query(
-          collection(db, `users/${auth.currentUser.uid}/wishlist`),
-          where('name', '==', wine.name)
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
+        const { data, error } = await supabase
+          .from('wishlist')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', wine.name)
+          .limit(1);
+        if (error) throw error;
+        if (data && data.length > 0) {
           setIsWishlisted(true);
-          setWishlistDocId(querySnapshot.docs[0].id);
+          setWishlistDocId(data[0].id);
+        } else {
+          setIsWishlisted(false);
+          setWishlistDocId(null);
         }
       } catch (error) {
-        console.error("Error checking wishlist:", error);
+        console.error('Error checking wishlist:', error);
       }
     };
     checkWishlist();
-  }, [wine.name]);
+  }, [wine.name, user, supabase]);
 
   const toggleWishlist = async () => {
-    if (!auth.currentUser) return;
+    if (!user) return;
     setIsLiking(true);
-    
+
     // Vibrate if supported
     if (navigator.vibrate) {
       navigator.vibrate(50);
@@ -56,34 +62,53 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
 
     try {
       if (isWishlisted && wishlistDocId) {
-        const q = query(
-          collection(db, `users/${auth.currentUser.uid}/wishlist`),
-          where('name', '==', wine.name)
-        );
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach(async (docSnap) => {
-          await deleteDoc(docSnap.ref);
-        });
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('name', wine.name);
+        if (error) throw error;
         setIsWishlisted(false);
         setWishlistDocId(null);
       } else {
-        const docRef = await addDoc(collection(db, `users/${auth.currentUser.uid}/wishlist`), {
-          ...wine,
-          addedAt: new Date().toISOString()
-        });
+        // Whitelist only columns that exist on the wishlist table.
+        const snake = toSnake(wine ?? {});
+        const allowed = new Set([
+          'name', 'vintage', 'region', 'grape', 'price', 'reason',
+          'notes', 'personal_notes', 'image', 'image_url',
+        ]);
+        const payload: Record<string, unknown> = {
+          user_id: user.id,
+          added_at: new Date().toISOString(),
+          name: wine?.name,
+        };
+        for (const [k, v] of Object.entries(snake)) {
+          if (allowed.has(k) && v !== undefined) payload[k] = v;
+        }
+        const { data, error } = await supabase
+          .from('wishlist')
+          .insert(payload)
+          .select('id')
+          .single();
+        if (error) throw error;
         setIsWishlisted(true);
-        setWishlistDocId(docRef.id);
-        
+        setWishlistDocId(data?.id ?? null);
+
         // Track event
-        console.log("Event logged:", {
-          event: "like_wine",
+        console.log('Event logged:', {
+          event: 'like_wine',
           wine_id: wine.id || wine.name,
-          user_id: auth.currentUser.uid,
-          timestamp: new Date().toISOString()
+          user_id: user.id,
+          timestamp: new Date().toISOString(),
         });
       }
     } catch (error) {
-      handleFirestoreError(error, isWishlisted ? OperationType.DELETE : OperationType.CREATE, `users/${auth.currentUser.uid}/wishlist`);
+      handleSupabaseError(
+        error,
+        isWishlisted ? OperationType.DELETE : OperationType.CREATE,
+        'wishlist',
+        user.id
+      );
     } finally {
       setTimeout(() => setIsLiking(false), 300);
     }
@@ -113,7 +138,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
     console.log("Event logged:", {
       event: "buy_now_click",
       wine_id: wine.id || wine.name,
-      user_id: auth?.currentUser?.uid || 'anonymous',
+      user_id: user?.id || 'anonymous',
       timestamp: new Date().toISOString()
     });
     
@@ -145,17 +170,19 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
     : priceString;
 
   const saveNotes = async () => {
-    if (!auth.currentUser || !wine.id) return;
+    if (!user || !wine.id) return;
     setIsSavingNotes(true);
     try {
-      const wineRef = doc(db, `users/${auth.currentUser.uid}/cellar`, wine.id);
-      await updateDoc(wineRef, {
-        personalNotes: personalNotes
-      });
+      const { error } = await supabase
+        .from('cellar')
+        .update({ personal_notes: personalNotes })
+        .eq('id', wine.id)
+        .eq('user_id', user.id);
+      if (error) throw error;
       setIsEditingNotes(false);
     } catch (error) {
-      console.error("Error saving notes:", error);
-      handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}/cellar/${wine.id}`);
+      console.error('Error saving notes:', error);
+      handleSupabaseError(error, OperationType.UPDATE, `cellar/${wine.id}`, user.id);
     } finally {
       setIsSavingNotes(false);
     }

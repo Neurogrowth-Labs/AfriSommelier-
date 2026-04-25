@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Calendar, MapPin, Clock } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase } from '../lib/supabase';
 
 export default function EventModal({ onClose }: { onClose: () => void }) {
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -12,22 +14,23 @@ export default function EventModal({ onClose }: { onClose: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async () => {
-    if (!auth.currentUser || !title || !date) return;
-    
+    if (!user || !title || !date) return;
+
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, `users/${auth.currentUser.uid}/events`), {
+      const { error } = await supabase.from('events').insert({
+        user_id: user.id,
         title,
         date,
         time,
         location,
-        createdAt: new Date().toISOString()
       });
+      if (error) throw error;
       alert("Tasting event scheduled! You'll receive a reminder.");
       onClose();
     } catch (error) {
-      console.error("Error saving event:", error);
-      alert("Failed to schedule event.");
+      console.error('Error saving event:', error);
+      alert('Failed to schedule event.');
     } finally {
       setIsSubmitting(false);
     }

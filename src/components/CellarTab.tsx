@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Heart, Wine } from 'lucide-react';
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase, toCamelList } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../utils/supabaseErrorHandler';
 import AddWineModal from './AddWineModal';
 
 function calculateSmartAlert(vintage: string) {
@@ -19,6 +19,8 @@ function calculateSmartAlert(vintage: string) {
 }
 
 export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void }) {
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [wines, setWines] = useState<any[]>([]);
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,40 +31,75 @@ export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: 
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!user) return;
+    const userId = user.id;
 
-    const qCellar = query(
-      collection(db, `users/${auth.currentUser.uid}/cellar`)
-    );
-    const qWishlist = query(
-      collection(db, `users/${auth.currentUser.uid}/wishlist`)
-    );
+    const loadCellar = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('cellar')
+          .select('*')
+          .eq('user_id', userId);
+        if (error) throw error;
+        const fetched = toCamelList<any>(data).map((row) => {
+          const smartAlert = calculateSmartAlert(row.vintage);
+          return { ...row, status: smartAlert.status, statusColor: smartAlert.color };
+        });
+        setWines(fetched);
+      } catch (error) {
+        try {
+          handleSupabaseError(error, OperationType.LIST, 'cellar', userId);
+        } catch {
+          /* logged */
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const unsubscribeCellar = onSnapshot(qCellar, (snapshot) => {
-      const fetchedWines = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const smartAlert = calculateSmartAlert(data.vintage);
-        return { id: doc.id, ...data, status: smartAlert.status, statusColor: smartAlert.color };
-      });
-      setWines(fetchedWines);
-      setLoading(false);
-    }, (error) => {
-      setLoading(false);
-      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/cellar`);
-    });
+    const loadWishlist = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('wishlist')
+          .select('*')
+          .eq('user_id', userId);
+        if (error) throw error;
+        setWishlist(toCamelList<any>(data));
+      } catch (error) {
+        try {
+          handleSupabaseError(error, OperationType.LIST, 'wishlist', userId);
+        } catch {
+          /* logged */
+        }
+      }
+    };
 
-    const unsubscribeWishlist = onSnapshot(qWishlist, (snapshot) => {
-      const fetchedWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setWishlist(fetchedWishlist);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/wishlist`);
-    });
+    loadCellar();
+    loadWishlist();
+
+    const cellarChannel = supabase
+      .channel(`cellar-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cellar', filter: `user_id=eq.${userId}` },
+        () => loadCellar()
+      )
+      .subscribe();
+
+    const wishlistChannel = supabase
+      .channel(`wishlist-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wishlist', filter: `user_id=eq.${userId}` },
+        () => loadWishlist()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribeCellar();
-      unsubscribeWishlist();
+      supabase.removeChannel(cellarChannel);
+      supabase.removeChannel(wishlistChannel);
     };
-  }, []);
+  }, [user, supabase]);
 
   const totalValue = wines.reduce((acc, wine) => {
     const priceStr = wine.price ? wine.price.replace(/[^0-9]/g, '') : '0';

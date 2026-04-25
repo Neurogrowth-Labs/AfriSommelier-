@@ -1,29 +1,30 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Grape, Loader2, AlertCircle } from 'lucide-react';
-import { loginWithGoogle } from '../firebase';
+import { useSignIn } from '@clerk/clerk-react';
 
 export default function LoginScreen() {
+  const { signIn, isLoaded } = useSignIn();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (isLoggingIn) return;
+    if (!isLoaded || !signIn || isLoggingIn) return;
     setIsLoggingIn(true);
     setErrorMsg(null);
     try {
-      await loginWithGoogle();
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: `${window.location.origin}/`,
+      });
     } catch (error: any) {
-      console.error("Login failed:", error);
-      if (error.code === 'auth/popup-blocked') {
-        setErrorMsg('Popup blocked by browser. Please allow popups for this site and try again.');
-      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-        // User cancelled, no need to show a scary error
-        setErrorMsg(null);
-      } else {
-        setErrorMsg(error.message || 'An error occurred during sign in.');
-      }
-    } finally {
+      console.error('Login failed:', error);
+      const message = error?.errors?.[0]?.longMessage
+        ?? error?.errors?.[0]?.message
+        ?? error?.message
+        ?? 'An error occurred during sign in.';
+      setErrorMsg(message);
       setIsLoggingIn(false);
     }
   };
@@ -48,7 +49,7 @@ export default function LoginScreen() {
         
         <button 
           onClick={handleLogin}
-          disabled={isLoggingIn}
+          disabled={isLoggingIn || !isLoaded}
           className="w-full bg-ivory text-wine-900 font-medium py-4 rounded-2xl hover:scale-[0.98] transition-transform flex items-center justify-center gap-3 shadow-xl disabled:opacity-70 disabled:hover:scale-100"
         >
           {isLoggingIn ? (

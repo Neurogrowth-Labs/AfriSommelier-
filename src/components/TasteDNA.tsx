@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { Dna, Info, Edit2, Check, X } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../utils/supabaseErrorHandler';
 
 // Suppress harmless Recharts warning caused by Framer Motion unmounts
 const originalWarn = console.warn;
@@ -42,6 +42,8 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function TasteDNA() {
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [showCritics, setShowCritics] = useState(false);
   const [showRegion, setShowRegion] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,12 +52,16 @@ export default function TasteDNA() {
 
   useEffect(() => {
     const fetchTasteProfile = async () => {
-      if (!auth.currentUser) return;
+      if (!user) return;
       try {
-        const docRef = doc(db, `users/${auth.currentUser.uid}/profile`, 'tasteDNA');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const savedData = docSnap.data().profile;
+        const { data, error } = await supabase
+          .from('taste_dna')
+          .select('profile')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data?.profile) {
+          const savedData = data.profile as Record<string, number>;
           const mergedData = defaultTasteData.map(item => ({
             ...item,
             You: savedData[item.subject] !== undefined ? savedData[item.subject] : item.You
@@ -64,29 +70,38 @@ export default function TasteDNA() {
           setEditData(mergedData);
         }
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser.uid}/profile/tasteDNA`);
+        try {
+          handleSupabaseError(error, OperationType.GET, 'taste_dna', user.id);
+        } catch {
+          /* logged */
+        }
       }
     };
     fetchTasteProfile();
-  }, []);
+  }, [user, supabase]);
 
   const handleSave = async () => {
-    if (!auth.currentUser) return;
+    if (!user) return;
     try {
-      const profileToSave = editData.reduce((acc: any, item) => {
+      const profileToSave = editData.reduce((acc: Record<string, number>, item) => {
         acc[item.subject] = item.You;
         return acc;
       }, {});
-      
-      await setDoc(doc(db, `users/${auth.currentUser.uid}/profile`, 'tasteDNA'), {
-        profile: profileToSave,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      
+
+      const { error } = await supabase.from('taste_dna').upsert(
+        {
+          user_id: user.id,
+          profile: profileToSave,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+      if (error) throw error;
+
       setTasteData(editData);
       setIsEditing(false);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}/profile/tasteDNA`);
+      handleSupabaseError(error, OperationType.UPDATE, 'taste_dna', user.id);
     }
   };
 

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Settings, Award, Flame, LogOut, Wine, Activity } from 'lucide-react';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import { useSupabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../utils/supabaseErrorHandler';
 
 export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const supabase = useSupabase();
   const [stats, setStats] = useState({ glasses: 0, streak: 3, uniqueWines: 0 });
   const [loading, setLoading] = useState(true);
   const [tasteDNA, setTasteDNA] = useState({
@@ -19,38 +22,41 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!auth.currentUser) return;
+      if (!user) return;
       try {
-        const q = query(collection(db, `users/${auth.currentUser.uid}/consumption`));
-        const snapshot = await getDocs(q);
-        
-        const unique = new Set();
-        snapshot.forEach(doc => {
-          unique.add(doc.data().wineName);
-        });
-
+        const { data, error } = await supabase
+          .from('consumption')
+          .select('wine_name')
+          .eq('user_id', user.id);
+        if (error) throw error;
+        const unique = new Set<string>();
+        for (const row of data ?? []) {
+          if (row.wine_name) unique.add(row.wine_name as string);
+        }
         setStats({
-          glasses: snapshot.size,
+          glasses: data?.length ?? 0,
           streak: 3, // Mocked streak for now
-          uniqueWines: unique.size
+          uniqueWines: unique.size,
         });
       } catch (error) {
-        import('../utils/firestoreErrorHandler').then(({ handleFirestoreError, OperationType }) => {
-          handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser?.uid}/consumption`);
-        });
+        try {
+          handleSupabaseError(error, OperationType.GET, 'consumption', user.id);
+        } catch {
+          /* logged */
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [user, supabase]);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -78,14 +84,14 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
         <div className="flex flex-col items-center mb-10 mt-4">
           <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gold-500 mb-4 relative">
             <img 
-              src={auth.currentUser?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} 
+              src={user?.imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} 
               alt="Profile" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
           </div>
-          <h1 className="text-2xl font-serif font-semibold">{auth.currentUser?.displayName || 'Wine Lover'}</h1>
-          <p className="text-gray-400 text-sm">{auth.currentUser?.email}</p>
+          <h1 className="text-2xl font-serif font-semibold">{user?.fullName || user?.firstName || 'Wine Lover'}</h1>
+          <p className="text-gray-400 text-sm">{user?.primaryEmailAddress?.emailAddress}</p>
         </div>
 
         {/* Stats Grid */}
