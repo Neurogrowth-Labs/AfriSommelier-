@@ -1,22 +1,70 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/* Design tokens — original dashboard palette + new brand palette     */
+/* ------------------------------------------------------------------ */
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
-  
+  --font-sans: "Satoshi", "Inter", system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", "Playfair Display", serif;
+  --font-display: "Cormorant Garamond", serif;
+
+  /* Legacy dashboard palette (do not remove — used across existing
+     authenticated tabs). */
   --color-bg: #0B0B0C;
   --color-wine-900: #0B0B0C;
   --color-wine-800: #1A0F12;
   --color-wine-700: #4B0F1A;
-  
   --color-gold-500: #C6A96B;
   --color-gold-300: #E7D3A3;
-  
   --color-ivory: #F5F3EF;
   --color-gray-400: #A1A1A6;
-  
   --color-glass: rgba(255, 255, 255, 0.06);
   --color-glass-border: rgba(255, 255, 255, 0.1);
+
+  /* Brand palette (landing page + onboarding). Cape Winelands meets
+     luxury dining: terracotta, warm ivory, dark mahogany, gold. */
+  --color-terracotta: #8B3A2F;
+  --color-terracotta-700: #6F2D24;
+  --color-terracotta-500: #8B3A2F;
+  --color-terracotta-400: #A24A3D;
+  --color-gold: #C9933A;
+  --color-gold-700: #A07424;
+  --color-gold-soft: #E0B266;
+  --color-warm-ivory: #FAF7F2;
+  --color-warm-ivory-200: #F2EDE3;
+  --color-mahogany: #1A1410;
+  --color-mahogany-800: #221915;
+  --color-mahogany-700: #2F231D;
+  --color-deep-brown: #2C1810;
+  --color-light-text: #2C1810;
+  --color-dark-text: #E8DDD5;
+}
+
+/* ------------------------------------------------------------------ */
+/* Theme switching — landing + onboarding scope themselves with        */
+/* `data-theme="light"` / `data-theme="dark"` on a wrapper element so  */
+/* the existing authenticated dashboard (always dark) is unaffected.  */
+/* ------------------------------------------------------------------ */
+[data-theme="light"] {
+  --bg: var(--color-warm-ivory);
+  --bg-elevated: #FFFFFF;
+  --bg-muted: var(--color-warm-ivory-200);
+  --text: var(--color-deep-brown);
+  --text-muted: #6B5046;
+  --border: rgba(44, 24, 16, 0.12);
+  --border-strong: rgba(44, 24, 16, 0.24);
+  --shadow-color: rgba(44, 24, 16, 0.08);
+}
+
+[data-theme="dark"] {
+  --bg: var(--color-mahogany);
+  --bg-elevated: var(--color-mahogany-800);
+  --bg-muted: var(--color-mahogany-700);
+  --text: var(--color-dark-text);
+  --text-muted: rgba(232, 221, 213, 0.6);
+  --border: rgba(232, 221, 213, 0.12);
+  --border-strong: rgba(232, 221, 213, 0.24);
+  --shadow-color: rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -49,4 +97,44 @@ h1, h2, h3, h4, h5, h6, .font-serif {
 .mask-fade-edges {
   mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Landing page — film grain overlay used on the hero                  */
+/* ------------------------------------------------------------------ */
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ------------------------------------------------------------------ */
+/* Wine glass pour animation — used on the onboarding welcome screen   */
+/* ------------------------------------------------------------------ */
+@keyframes wine-fill {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.animate-wine-fill {
+  animation: wine-fill 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Honor the OS-level reduced-motion preference for all animations. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-wine-fill,
+  .animate-shimmer {
+    animation: none;
+  }
 }
