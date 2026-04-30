@@ -4,31 +4,11 @@ import { Sparkles, ChevronRight, Activity, Droplet, Calendar, Plus, TrendingUp }
 import { supabase } from '../supabase';
 import EventModal from './EventModal';
 
-const trendingNews = [
-  {
-    title: "Global Supply Shift Shapes Upcoming Vintages",
-    category: "Global News",
-    image: "https://images.unsplash.com/photo-1596758410228-568ea46a9b51?q=80&w=600&auto=format&fit=crop",
-    description: "Experts predict a rise in alternative varietals as traditional regions adapt to climate shifts this year."
-  },
-  {
-    title: "South Africa's Cap Classique Renaissance",
-    category: "Local Spotlight",
-    image: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=600&auto=format&fit=crop",
-    description: "Stellenbosch producers are gaining international acclaim for traditional method sparkling wines."
-  },
-  {
-    title: "The Rise of Low-Intervention Wonders",
-    category: "Trend",
-    image: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop",
-    description: "Natural and biodynamic wines continue to see explosive growth among modern connoisseurs."
-  }
-];
-
 export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void }) {
   const [glassesThisWeek, setGlassesThisWeek] = useState(0);
   const [caloriesThisWeek, setCaloriesThisWeek] = useState(0);
   const [events, setEvents] = useState<any[]>([]);
+  const [trendingNews, setTrendingNews] = useState<any[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
   const [profileUrl, setProfileUrl] = useState<string | null>(null);
   const [firstName, setFirstName] = useState<string>('Friend');
@@ -36,6 +16,27 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
   useEffect(() => {
     let isMounted = true;
     
+    // Fetch News Real-time
+    const fetchNews = async () => {
+      try {
+        const { data, error } = await supabase.from('news').select('*').order('created_at', { ascending: false }).limit(5);
+        if (error) throw error;
+        if (isMounted && data) {
+           setTrendingNews(data);
+        }
+      } catch (err) {
+        console.error('Error fetching news:', err);
+      }
+    };
+    fetchNews();
+    
+    const newsChannel = supabase
+      .channel('news_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, () => {
+        fetchNews();
+      })
+      .subscribe();
+
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -118,6 +119,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
 
     return () => {
       isMounted = false;
+      supabase.removeChannel(newsChannel);
       channelsPromise.then(channels => {
         if (channels) {
           supabase.removeChannel(channels.consumptionChannel);

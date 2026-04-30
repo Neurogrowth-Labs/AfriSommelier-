@@ -120,6 +120,27 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
     };
   }, []);
 
+  useEffect(() => {
+    const saveTasteDNA = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      try {
+        await supabase.from('profiles').update({ taste_dna: tasteDNA }).eq('id', user.id);
+      } catch (err) {
+        console.error("Error auto-saving taste DNA", err);
+      }
+    };
+    
+    // Only auto-save if we are not initially loading
+    if (!loading) {
+       const timeoutId = setTimeout(() => {
+          saveTasteDNA();
+       }, 1500);
+       return () => clearTimeout(timeoutId);
+    }
+  }, [tasteDNA, loading]);
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
