@@ -102,9 +102,17 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         flavors: answers.flavors,
         regions: answers.regions,
         interests: answers.interests,
-        sweet_dry: sliders.sweetDry,
-        light_full: sliders.lightFull,
-        fruity_earthy: sliders.fruityEarthy,
+        sweet_dry: sliders.sweetDry.toString(),
+        light_full: sliders.lightFull.toString(),
+        fruity_earthy: sliders.fruityEarthy.toString(),
+        taste_dna: {
+           Boldness: sliders.lightFull,
+           Tannin: 50,
+           Sweetness: 100 - sliders.sweetDry,
+           Acidity: 60,
+           Fruitiness: 100 - sliders.fruityEarthy,
+           Earthiness: sliders.fruityEarthy
+        },
         created_at: new Date().toISOString()
       }, { onConflict: 'id' });
 

@@ -104,6 +104,16 @@ CREATE TABLE IF NOT EXISTS wines (
   rating NUMERIC
 );
 
+-- News Table (Trending Now)
+CREATE TABLE IF NOT EXISTS news (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT,
+  category TEXT,
+  image TEXT,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert some dummy data for the search
 INSERT INTO wines (name, region, grape, vintage, price, image, notes, rating)
 VALUES 
@@ -112,6 +122,14 @@ VALUES
 ('Ataraxia Chardonnay', 'Hemel-en-Aarde', 'Chardonnay', '2021', 'R 350', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400&auto=format&fit=crop', 'Crisp, mineral-driven Chardonnay from the cool Hemel-en-Aarde valley.', 4.6),
 ('Kanonkop Pinotage', 'Stellenbosch', 'Pinotage', '2019', 'R 450', 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?q=80&w=400&auto=format&fit=crop', 'The benchmark for Pinotage. Rich red fruit and subtle oak.', 4.7),
 ('Sadie Family Columella', 'Swartland', 'Shiraz', '2020', 'R 1200', 'https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?q=80&w=400&auto=format&fit=crop', 'Spectacular Mediterranean-style red blend from Swartland.', 4.9)
+ON CONFLICT DO NOTHING;
+
+-- Insert some dummy data for news
+INSERT INTO news (title, category, image, description)
+VALUES 
+('Global Supply Shift Shapes Upcoming Vintages', 'Global News', 'https://images.unsplash.com/photo-1596758410228-568ea46a9b51?q=80&w=600&auto=format&fit=crop', 'Experts predict a rise in alternative varietals as traditional regions adapt to climate shifts this year.'),
+('South Africa''s Cap Classique Renaissance', 'Local Spotlight', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=600&auto=format&fit=crop', 'Stellenbosch producers are gaining international acclaim for traditional method sparkling wines.'),
+('The Rise of Low-Intervention Wonders', 'Trend', 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop', 'Natural and biodynamic wines continue to see explosive growth among modern connoisseurs.')
 ON CONFLICT DO NOTHING;
 
 -- =========================================
@@ -173,6 +191,11 @@ DROP POLICY IF EXISTS "Anyone can read wines" ON wines;
 CREATE POLICY "Anyone can read wines" ON wines
   FOR SELECT USING (true);
 
+-- News Policies
+DROP POLICY IF EXISTS "Anyone can read news" ON news;
+CREATE POLICY "Anyone can read news" ON news
+  FOR SELECT USING (true);
+
 -- =========================================
 -- 4. Auto-Create Profile on Signup Trigger
 -- =========================================
@@ -198,6 +221,6 @@ CREATE TRIGGER on_auth_user_created
 -- =========================================
 BEGIN;
   DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews;
+  CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews, news;
 COMMIT;
 
