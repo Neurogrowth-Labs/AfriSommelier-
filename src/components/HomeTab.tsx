@@ -12,6 +12,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
   const [showEventModal, setShowEventModal] = useState(false);
   const [profileUrl, setProfileUrl] = useState<string | null>(null);
   const [firstName, setFirstName] = useState<string>('Friend');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,7 +32,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
     fetchNews();
     
     const newsChannel = supabase
-      .channel('news_changes')
+      .channel(`news_changes_${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, () => {
         fetchNews();
       })
@@ -40,6 +41,10 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
+      if (user.email === 'simao@neurogrowthlabs.co.za') {
+        setIsAdmin(true);
+      }
       
       const { data: profileData } = await supabase.from('profiles').select('email, first_name').eq('id', user.id).single();
       if (profileData && profileData.first_name && isMounted) {
@@ -65,7 +70,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
       if (data && isMounted) {
         let glasses = 0;
         let calories = 0;
-        data.forEach(doc => {
+        data.forEach((doc: any) => {
           glasses += 1;
           calories += Number(doc.calories) || 120;
         });
@@ -86,7 +91,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
         
       if (data && isMounted) {
         const today = new Date().toISOString().split('T')[0];
-        setEvents(data.filter(e => e.date >= today));
+        setEvents(data.filter((e: any) => e.date >= today));
       }
     };
 
@@ -139,6 +144,17 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
         >
           <img src={profileUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </button>
+        
+        {isAdmin && (
+          <button
+            onClick={() => onNavigate('admin')}
+            className="px-4 py-2 rounded-xl bg-gold-500/10 border border-gold-500/40 text-gold-400 font-mono text-xs font-bold hover:bg-gold-500/20 active:scale-95 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(198,169,107,0.1)]"
+          >
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+            Admin Console
+          </button>
+        )}
+
         <div className="w-10 h-10 rounded-full glass-panel flex items-center justify-center">
           <div className="w-2 h-2 bg-gold-500 rounded-full"></div>
         </div>

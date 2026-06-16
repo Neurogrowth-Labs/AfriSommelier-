@@ -17,15 +17,22 @@ import ProfileTab from './components/ProfileTab';
 import PairWithDinnerPage from './components/PairWithDinnerPage';
 import PairingEngine from './components/PairingEngine';
 import OnboardingScreen from './components/OnboardingScreen';
+import AdminDashboard from './components/AdminDashboard';
+import AddWineCollectionScreen from './components/AddWineCollectionScreen';
+import ManualEntryScreen from './components/ManualEntryScreen';
+import SearchWineScreen from './components/SearchWineScreen';
+import GrapeKnowledgePage from './components/GrapeKnowledgePage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedWine, setSelectedWine] = useState<any>(null);
+  const [selectedGrapeSlug, setSelectedGrapeSlug] = useState<string | null>(null);
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [initialDiscoverState, setInitialDiscoverState] = useState<any>(null);
   const [initialChatState, setInitialChatState] = useState<{ role: 'user' | 'model', text: string, autoVoice?: boolean } | null>(null);
+  const [cellarSubView, setCellarSubView] = useState<'cellar' | 'wishlist'>('cellar');
 
   useEffect(() => {
     const checkUser = async () => {
@@ -33,11 +40,15 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          if (!data && error?.code === 'PGRST116') {
-             setIsOnboarding(true);
+          if (user.email === 'simao@neurogrowthlabs.co.za') {
+            setIsOnboarding(false);
           } else {
-             setIsOnboarding(false);
+            const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!data && error?.code === 'PGRST116') {
+               setIsOnboarding(true);
+            } else {
+               setIsOnboarding(false);
+            }
           }
         } else {
           setIsOnboarding(true);
@@ -51,7 +62,7 @@ export default function App() {
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       checkUser();
     });
 
@@ -59,54 +70,65 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Handle Smart Redirect Links
-    const path = window.location.pathname;
-    const params = new URLSearchParams(window.location.search);
+    const handleUrlRouting = () => {
+      const path = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
 
-    if (path.startsWith('/pair')) {
-      setActiveTab('ai');
-      const meal = params.get('meal');
-      const mood = params.get('mood');
-      if (meal) {
-        setInitialChatState({ role: 'user', text: `I am having ${meal} for dinner. What South African wine would you pair with this?` });
-      } else if (mood) {
-        setInitialChatState({ role: 'user', text: `I am in a ${mood} mood. Recommend a South African wine.` });
+      if (path.startsWith('/pair')) {
+        setActiveTab('ai');
+        const meal = params.get('meal');
+        const mood = params.get('mood');
+        if (meal) {
+          setInitialChatState({ role: 'user', text: `I am having ${meal} for dinner. What South African wine would you pair with this?` });
+        } else if (mood) {
+          setInitialChatState({ role: 'user', text: `I am in a ${mood} mood. Recommend a South African wine.` });
+        } else {
+          setInitialChatState({ role: 'model', text: `What are you eating tonight? Let me help you pair a wine.` });
+        }
+        setSelectedGrapeSlug(null);
+      } else if (path.startsWith('/explore')) {
+        setActiveTab('discover');
+        setSelectedGrapeSlug(null);
+      } else if (path.startsWith('/trending') || path.startsWith('/search/trending') || path.startsWith('/sa')) {
+        setActiveTab('trending');
+        setSelectedGrapeSlug(null);
+        
+        // Determine initial filter based on route
+        if (path.includes('/news')) setInitialDiscoverState({ filter: 'News' });
+        else if (path.includes('/culture')) setInitialDiscoverState({ filter: 'Culture' });
+        else if (path.includes('/markets') || path.includes('/finance')) setInitialDiscoverState({ filter: 'Finance' });
+        else if (path.includes('/wine')) setInitialDiscoverState({ filter: 'Wine' });
+        else if (path.includes('/tech')) setInitialDiscoverState({ filter: 'Tech' });
+        else setInitialDiscoverState({ filter: 'All Trends' });
+      } else if (path.startsWith('/grapes/')) {
+        setActiveTab('discover');
+        const grape = path.split('/')[2];
+        setSelectedGrapeSlug(grape);
+      } else if (path.startsWith('/sommelier')) {
+        setActiveTab('ai');
+        const voice = params.get('voice');
+        setInitialChatState({ role: 'model', text: "Tell me your mood, budget, and meal, and I'll find the perfect wine.", autoVoice: voice === 'true' });
+        setSelectedGrapeSlug(null);
       } else {
-        setInitialChatState({ role: 'model', text: `What are you eating tonight? Let me help you pair a wine.` });
+        setSelectedGrapeSlug(null);
       }
-    } else if (path.startsWith('/explore')) {
-      setActiveTab('discover');
-    } else if (path.startsWith('/trending') || path.startsWith('/search/trending') || path.startsWith('/sa')) {
-      setActiveTab('trending');
-      
-      // Determine initial filter based on route
-      if (path.includes('/news')) setInitialDiscoverState({ filter: 'News' });
-      else if (path.includes('/culture')) setInitialDiscoverState({ filter: 'Culture' });
-      else if (path.includes('/markets') || path.includes('/finance')) setInitialDiscoverState({ filter: 'Finance' });
-      else if (path.includes('/wine')) setInitialDiscoverState({ filter: 'Wine' });
-      else if (path.includes('/tech')) setInitialDiscoverState({ filter: 'Tech' });
-      else setInitialDiscoverState({ filter: 'All Trends' });
-    } else if (path.startsWith('/grapes/')) {
-      setActiveTab('discover');
-      const grape = path.split('/')[2];
-      const grapeMap: Record<string, string> = {
-        'pinotage': 'Pinotage',
-        'chenin-blanc': 'Chenin Blanc',
-        'shiraz': 'Shiraz / Syrah',
-        'cabernet-sauvignon': 'Cabernet Sauvignon',
-        'merlot': 'Merlot',
-        'chardonnay': 'Chardonnay'
-      };
-      setInitialDiscoverState({ filterGrape: grapeMap[grape] || 'All' });
-    } else if (path.startsWith('/sommelier')) {
-      setActiveTab('ai');
-      const voice = params.get('voice');
-      setInitialChatState({ role: 'model', text: "Tell me your mood, budget, and meal, and I'll find the perfect wine.", autoVoice: voice === 'true' });
-    }
+    };
+
+    handleUrlRouting();
+    window.addEventListener('popstate', handleUrlRouting);
+    return () => window.removeEventListener('popstate', handleUrlRouting);
   }, []);
 
   if (loading) {
-    return <div className="min-h-screen bg-wine-900 flex items-center justify-center text-gold-500">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-[#0B0B0C] flex flex-col items-center justify-center text-gold-500 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gold-500/10 rounded-full blur-[80px] z-0 animate-pulse pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <Grape className="w-12 h-12 text-gold-500 animate-bounce duration-1000" />
+          <div className="text-xs font-mono tracking-[0.25em] text-gold-400 uppercase animate-pulse">Initializing Cellar Vault</div>
+        </div>
+      </div>
+    );
   }
 
   if (isOnboarding) {
@@ -121,50 +143,105 @@ export default function App() {
   return (
     <div className="min-h-screen bg-wine-900 text-ivory font-sans selection:bg-gold-500/30">
       <main className="h-screen overflow-y-auto hide-scrollbar relative">
-        {activeTab === 'home' && <HomeTab onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
-          setActiveTab(tab);
-          if (tab === 'discover' && state) setInitialDiscoverState(state);
-          if (tab === 'ai' && state) setInitialChatState(state);
-        }} />}
-        {activeTab === 'discover' && <DiscoverTab onSelectWine={setSelectedWine} initialState={initialDiscoverState} />}
-        {activeTab === 'scan' && <ScanTab onSelectWine={setSelectedWine} />}
-        {activeTab === 'ai' && <SommelierChat onClose={() => setActiveTab('home')} initialMessage={initialChatState} />}
-        {activeTab === 'cellar' && <CellarTab onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
-          setActiveTab(tab);
-          if (tab === 'discover' && state) setInitialDiscoverState(state);
-          if (tab === 'ai' && state) setInitialChatState(state);
-        }} />}
-        {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => setActiveTab(tab)} />}
-        {activeTab === 'trending' && <TrendingTab onBack={() => setActiveTab('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
-        {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => setActiveTab('home')} onNavigate={(tab, state) => {
-          setActiveTab(tab);
-          if (tab === 'discover' && state) setInitialDiscoverState(state);
-          if (tab === 'ai' && state) setInitialChatState(state);
-        }} />}
-        {activeTab === 'pairing-engine' && <PairingEngine onBack={() => setActiveTab('pairings')} onNavigate={(tab, state) => {
-          setActiveTab(tab);
-          if (tab === 'discover' && state) setInitialDiscoverState(state);
-        }} />}
+        {selectedGrapeSlug ? (
+          <GrapeKnowledgePage 
+            slug={selectedGrapeSlug} 
+            onBack={() => {
+              window.history.pushState(null, '', '/explore');
+              setSelectedGrapeSlug(null);
+              setActiveTab('discover');
+            }}
+            onSelectWine={setSelectedWine}
+          />
+        ) : (
+          <>
+            {activeTab === 'home' && <HomeTab onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
+              setActiveTab(tab);
+              if (tab === 'discover' && state) setInitialDiscoverState(state);
+              if (tab === 'ai' && state) setInitialChatState(state);
+            }} />}
+            {activeTab === 'discover' && <DiscoverTab onSelectWine={setSelectedWine} initialState={initialDiscoverState} />}
+            {activeTab === 'scan' && <ScanTab onSelectWine={setSelectedWine} />}
+            {activeTab === 'ai' && <SommelierChat onClose={() => setActiveTab('home')} initialMessage={initialChatState} />}
+            {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
+              setActiveTab(tab);
+              if (tab === 'discover' && state) setInitialDiscoverState(state);
+              if (tab === 'ai' && state) setInitialChatState(state);
+            }} />}
+            {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => {
+              setActiveTab(tab);
+              if (tab === 'cellar') setCellarSubView('cellar');
+            }} />}
+            {activeTab === 'trending' && <TrendingTab onBack={() => setActiveTab('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
+            {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => setActiveTab('home')} onNavigate={(tab, state) => {
+              setActiveTab(tab);
+              if (tab === 'discover' && state) setInitialDiscoverState(state);
+              if (tab === 'ai' && state) setInitialChatState(state);
+            }} />}
+            {activeTab === 'pairing-engine' && <PairingEngine onBack={() => setActiveTab('pairings')} onNavigate={(tab, state) => {
+              setActiveTab(tab);
+              if (tab === 'discover' && state) setInitialDiscoverState(state);
+            }} />}
+            {activeTab === 'admin' && <AdminDashboard onBack={() => setActiveTab('home')} />}
+            {activeTab === 'collection-add' && (
+              <AddWineCollectionScreen 
+                onBack={() => {
+                  setCellarSubView('cellar');
+                  setActiveTab('cellar');
+                }}
+                onNavigate={(route) => setActiveTab(route)}
+                onSelectWine={(wine) => setSelectedWine(wine)}
+                onNavigateToCellar={(section) => {
+                  if (section === 'wishlist') {
+                    setCellarSubView('wishlist');
+                    setActiveTab('cellar');
+                  } else if (section === 'portfolio') {
+                    setActiveTab('profile');
+                  } else {
+                    setCellarSubView('cellar');
+                    setActiveTab('cellar');
+                  }
+                }}
+              />
+            )}
+            {activeTab === 'collection-manual' && (
+              <ManualEntryScreen 
+                onBack={() => setActiveTab('collection-add')}
+                onNavigate={(route) => setActiveTab(route)}
+                onSelectWine={(wine) => setSelectedWine(wine)}
+              />
+            )}
+            {activeTab === 'search' && (
+              <SearchWineScreen 
+                onBack={() => setActiveTab('collection-add')}
+                onNavigate={(route) => setActiveTab(route)}
+                onSelectWine={(wine) => setSelectedWine(wine)}
+              />
+            )}
+          </>
+        )}
       </main>
 
-      {/* Floating Glass Navigation Bar */}
-      <nav className="fixed bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-[500px] h-[72px] glass-panel flex justify-between items-center px-6 z-40">
-        <NavItem icon={<Home size={24} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-        <NavItem icon={<Compass size={24} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
-        
-        {/* Floating Center Scan Button */}
-        <div className="relative -top-6">
-          <button 
-            onClick={() => setActiveTab('scan')}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-300 to-gold-500 text-wine-900 flex items-center justify-center shadow-[0_8px_32px_rgba(198,169,107,0.4)] hover:scale-105 transition-transform"
-          >
-            <ScanLine size={28} />
-          </button>
-        </div>
+      {/* Floating Glass Navigation Bar - Hidden in Admin Console Mode & Immersive Add workflows */}
+      {activeTab !== 'admin' && activeTab !== 'collection-add' && activeTab !== 'collection-manual' && activeTab !== 'search' && !selectedGrapeSlug && (
+        <nav className="fixed bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-[500px] h-[72px] glass-panel flex justify-between items-center px-6 z-40">
+          <NavItem icon={<Home size={24} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+          <NavItem icon={<Compass size={24} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
+          
+          {/* Floating Center Scan Button */}
+          <div className="relative -top-6">
+            <button 
+              onClick={() => setActiveTab('scan')}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-300 to-gold-500 text-wine-900 flex items-center justify-center shadow-[0_8px_32px_rgba(198,169,107,0.4)] hover:scale-105 transition-transform"
+            >
+              <ScanLine size={28} />
+            </button>
+          </div>
 
-        <NavItem icon={<MessageSquare size={24} />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-        <NavItem icon={<Grape size={24} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
-      </nav>
+          <NavItem icon={<MessageSquare size={24} />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+          <NavItem icon={<Grape size={24} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
+        </nav>
+      )}
 
       <AnimatePresence>
         {selectedWine && (

@@ -139,6 +139,36 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       } else {
         await registerWithEmail(email, password);
       }
+      
+      const cleanEmail = email.toLowerCase().trim();
+      if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('profiles').upsert({
+            id: user.id,
+            email: cleanEmail,
+            first_name: 'Simão',
+            identity: 'Investor / Collector',
+            role: 'super_admin',
+            sweet_dry: '30',
+            light_full: '80',
+            fruity_earthy: '50',
+            taste_dna: {
+              Boldness: 80,
+              Tannin: 80,
+              Sweetness: 30,
+              Acidity: 70,
+              Fruitiness: 50,
+              Earthiness: 50
+            },
+            created_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        }
+        setIsSaving(false);
+        onComplete();
+        return;
+      }
+
       await saveProfileAndProceed();
     } catch (error: any) {
       console.error("Auth failed:", error);
@@ -185,42 +215,93 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
     <motion.div 
       key="step-0"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-end pb-24 px-6 z-20 text-center"
+      className="absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center"
     >
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&q=80" 
-          alt="Vineyard" 
-          className="w-full h-full object-cover object-bottom"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-wine-950 via-wine-900/60 to-transparent"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0B0B0C] to-[#09090A] z-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[500px] md:h-[500px] bg-gold-500/10 rounded-full blur-[100px] pointer-events-none" />
       </div>
-      <div className="relative z-10 w-full max-w-lg">
-        <motion.h1 
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-          className="text-5xl font-serif font-bold text-ivory mb-4"
+      
+      <div className="relative z-10 w-full max-w-md px-1 select-none">
+        {/* Fine gold border badge */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gold-500/30 bg-gold-500/10 mb-4 backdrop-blur-md"
         >
-          Discover Africa Through Taste.
+          <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse" />
+          <span className="text-[9px] tracking-[0.2em] font-sans text-gold-400 font-semibold uppercase">AfriSommelier Estate</span>
+        </motion.div>
+
+        {/* Elegant wine glasses visual descriptor */}
+        <motion.h1 
+          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+          className="text-2xl md:text-3.5xl font-serif font-bold text-ivory mb-2 leading-tight tracking-tight px-1"
+        >
+          Curated <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-500 to-gold-300">African Terroir</span>
         </motion.h1>
+        
         <motion.p 
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-          className="text-gray-300 text-lg mb-10 font-serif"
+          className="text-gray-400 text-xs md:text-sm mb-5 font-serif leading-relaxed italic max-w-sm mx-auto"
         >
-          AI-powered wine, food, and culture experiences curated for you.
+          "An AI-designed sommelier mapping, unlocking winemaking heritage, perfect pairings and investment-grade cellar yields."
         </motion.p>
 
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-4">
+        {/* Elegant 4 winemaking stages highlight card list */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="bg-wine-950/60 border border-white/5 p-4 rounded-xl mb-6 text-left space-y-3"
+        >
+          <div className="text-[10px] font-mono tracking-[0.15em] text-gold-450 uppercase border-b border-white/5 pb-1.5 mb-1 text-center font-bold">
+            The 4 Winemaking Stages
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="flex gap-2 items-start">
+              <span className="text-sm">🌾</span>
+              <div>
+                <h4 className="text-[11px] font-bold text-ivory">1. Harvest & Select</h4>
+                <p className="text-[9px] text-gray-400">Handpicking peak African fruit.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 items-start">
+              <span className="text-sm">🍇</span>
+              <div>
+                <h4 className="text-[11px] font-bold text-ivory">2. Crush & Press</h4>
+                <p className="text-[9px] text-gray-400">Separating skin & free-run juice.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 items-start">
+              <span className="text-sm">🧪</span>
+              <div>
+                <h4 className="text-[11px] font-bold text-ivory">3. Fermentation</h4>
+                <p className="text-[9px] text-gray-400">Cultivating yeasts and body structure.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 items-start">
+              <span className="text-sm">🍾</span>
+              <div>
+                <h4 className="text-[11px] font-bold text-ivory">4. Aging & Bottle</h4>
+                <p className="text-[9px] text-gray-400">Maturing in select oak vaults.</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-3.5">
           <button 
             onClick={proceed}
-            className="w-full py-4 rounded-xl bg-gold-500 text-wine-900 font-semibold text-lg hover:bg-gold-400 transition-colors shadow-[0_0_30px_rgba(198,169,107,0.3)] shadow-gold-500/20"
+            className="w-full py-3 rounded-lg bg-gradient-to-r from-gold-600 to-gold-400 text-wine-950 font-serif font-bold text-base hover:from-gold-500 hover:to-gold-300 transition-all duration-350 shadow-[0_4px_22px_rgba(198,169,107,0.2)] active:scale-[0.99] tracking-wide"
           >
-            Begin Your Journey
+            Create Your Tasting DNA
           </button>
           <button 
             onClick={() => { setIsLogin(true); setIsLoginOnly(true); setStep(7); }}
-            className="w-full py-4 text-gray-300 font-medium hover:text-ivory transition-colors"
+            className="w-full py-1.5 text-[10px] tracking-widest uppercase font-mono text-gray-400 hover:text-gold-300 transition-colors"
           >
-            Already have an account? Log In
+            Already registered? <span className="underline decoration-gold-500/40 hover:decoration-gold-500 underline-offset-4 font-bold">Log In</span>
           </button>
         </motion.div>
       </div>
@@ -228,24 +309,25 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderIdentity = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-serif text-ivory mb-2">Your Wine Journey</h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg">How would you describe your relationship with wine?</p>
-      <div className="space-y-4">
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage I: Your Wine Journey</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">How would you describe your relationship with wine?</p>
+      <div className="space-y-2">
         {identities.map(i => (
           <button
             key={i.id}
             onClick={() => { setAnswers({ ...answers, identity: i.id }); setTimeout(proceed, 400); }}
-            className={`w-full p-5 rounded-2xl border flex items-center gap-4 transition-all duration-300 ${
+            className={`w-full p-3 rounded-xl border flex items-center gap-3 transition-all duration-300 ${
               answers.identity === i.id 
-                ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_15px_rgba(198,169,107,0.15)] scale-[1.02]' 
-                : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/30'
+                ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_15px_rgba(198,169,107,0.12)] scale-[1.01]' 
+                : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/20'
             }`}
           >
-            <div className={`p-3 rounded-xl ${answers.identity === i.id ? 'bg-gold-500/20' : 'bg-wine-900/50'}`}>
+            <div className={`p-2 rounded-lg shrink-0 [&_svg]:w-4 [&_svg]:h-4 ${answers.identity === i.id ? 'bg-gold-500/20 text-gold-400' : 'bg-white/5 text-gray-300'}`}>
               {i.icon}
             </div>
-            <span className="font-medium text-lg flex-1 text-left">{i.label}</span>
+            <span className="font-medium text-sm flex-1 text-left">{i.label}</span>
+            <ChevronRight className="w-4 h-4 text-gray-500" />
           </button>
         ))}
       </div>
@@ -253,11 +335,11 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderSliders = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-serif text-ivory mb-2">Structure & Balance</h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg">Define the structure of your ideal pour.</p>
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage II: Structure & Balance</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Define the structure of your ideal pour.</p>
       
-      <div className="space-y-10">
+      <div className="space-y-3">
         {[
           { key: 'sweetDry', left: 'Sweet', right: 'Dry', color: 'bg-rose-400', emojiLeft: '🍯', emojiRight: '🍂' },
           { key: 'lightFull', left: 'Light', right: 'Full-bodied', color: 'bg-purple-500', emojiLeft: '🍃', emojiRight: '🍷' },
@@ -265,22 +347,22 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         ].map(slider => {
           const val = (sliders as any)[slider.key];
           return (
-            <div key={slider.key} className="glass-panel p-6 rounded-2xl border border-glass-border relative overflow-hidden group">
-              <div className="absolute inset-0 opacity-10 transition-opacity group-hover:opacity-20" style={{ background: `linear-gradient(90deg, transparent, ${slider.color.replace('bg-', '')}, transparent)` }}></div>
+            <div key={slider.key} className="glass-panel p-3.5 rounded-xl border border-glass-border relative overflow-hidden group">
+              <div className="absolute inset-0 opacity-5 transition-opacity group-hover:opacity-10" style={{ background: `linear-gradient(90deg, transparent, ${slider.color.replace('bg-', '')}, transparent)` }}></div>
               <div className="relative z-10">
-                <div className="flex justify-between items-center mb-6">
-                  <div className={`flex flex-col items-center gap-1 transition-opacity ${val < 50 ? 'opacity-100' : 'opacity-50'}`}>
-                    <span className="text-2xl">{slider.emojiLeft}</span>
-                    <span className="text-sm font-medium text-ivory">{slider.left}</span>
+                <div className="flex justify-between items-center mb-2.5">
+                  <div className={`flex items-center gap-1.5 transition-opacity ${val < 50 ? 'opacity-100' : 'opacity-40'}`}>
+                    <span className="text-lg">{slider.emojiLeft}</span>
+                    <span className="text-xs font-medium text-ivory">{slider.left}</span>
                   </div>
-                  <div className={`flex flex-col items-center gap-1 transition-opacity ${val > 50 ? 'opacity-100' : 'opacity-50'}`}>
-                    <span className="text-2xl">{slider.emojiRight}</span>
-                    <span className="text-sm font-medium text-ivory">{slider.right}</span>
+                  <div className={`flex items-center gap-1.5 transition-opacity ${val > 50 ? 'opacity-100' : 'opacity-40'}`}>
+                    <span className="text-xs font-medium text-ivory">{slider.right}</span>
+                    <span className="text-lg">{slider.emojiRight}</span>
                   </div>
                 </div>
                 
-                <div className="relative h-3 bg-black/40 rounded-full border border-white/10 shadow-inner">
-                  <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-gold-600 to-gold-400 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.4)] pointer-events-none" style={{ width: `${val}%` }}></div>
+                <div className="relative h-2 bg-black/40 rounded-full border border-white/5 shadow-inner">
+                  <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-gold-600 to-gold-400 rounded-full shadow-[0_0_10px_rgba(212,175,55,0.3)] pointer-events-none" style={{ width: `${val}%` }}></div>
                   <input
                     type="range"
                     min="0" max="100"
@@ -288,8 +370,8 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
                     onChange={e => setSliders(s => ({ ...s, [slider.key]: parseInt(e.target.value) }))}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <div className="absolute top-1/2 -mt-3 w-6 h-6 bg-white rounded-full border-2 border-gold-500 shadow-xl pointer-events-none transition-transform group-hover:scale-110 flex items-center justify-center" style={{ left: `calc(${val}% - 12px)` }}>
-                    <div className="w-2 h-2 bg-gold-500 rounded-full"></div>
+                  <div className="absolute top-1/2 -mt-2 w-4 h-4 bg-white rounded-full border border-gold-500 shadow-xl pointer-events-none transition-transform group-hover:scale-110 flex items-center justify-center animate-pulse" style={{ left: `calc(${val}% - 8px)` }}>
+                    <div className="w-1.5 h-1.5 bg-gold-600 rounded-full"></div>
                   </div>
                 </div>
               </div>
@@ -300,35 +382,35 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
 
       <motion.div 
         key={getSliderFeedback()}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-10 p-6 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-start gap-4 shadow-[0_0_30px_rgba(212,175,55,0.1)]"
+        className="mt-4 p-3.5 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-start gap-2.5 shadow-[0_0_20px_rgba(212,175,55,0.05)]"
       >
-        <Sparkles className="w-6 h-6 text-gold-400 shrink-0 mt-0.5 animate-pulse" />
-        <p className="text-gold-100 text-sm leading-relaxed font-serif tracking-wide">{getSliderFeedback()}</p>
+        <Sparkles className="w-4 h-4 text-gold-400 shrink-0 mt-0.5 animate-pulse" />
+        <p className="text-gold-100/90 text-xs leading-relaxed font-serif italic">{getSliderFeedback()}</p>
       </motion.div>
     </div>
   );
 
   const renderFlavors = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-serif text-ivory mb-2">Tasting Notes</h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg">Which primary profiles do you seek in a glass?</p>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage III: Tasting Notes</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Which primary profiles do you seek in a glass?</p>
+      <div className="grid grid-cols-3 gap-2">
         {flavors.map(f => {
           const isSelected = answers.flavors.includes(f.id);
           return (
             <button
               key={f.id}
               onClick={() => toggleArrayItem('flavors', f.id)}
-              className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all duration-300 ${
+              className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
                 isSelected 
-                  ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_15px_rgba(198,169,107,0.15)] scale-[1.02]' 
-                  : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/30'
+                  ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_10px_rgba(198,169,107,0.1)]' 
+                  : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/20'
               }`}
             >
-              <span className="text-4xl">{f.emoji}</span>
-              <span className="font-medium">{f.label}</span>
+              <span className="text-2xl">{f.emoji}</span>
+              <span className="text-[11px] font-medium tracking-tight text-center">{f.label}</span>
             </button>
           )
         })}
@@ -337,25 +419,29 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderRegions = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-serif text-ivory mb-2">Continental Identity</h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg">Which regions excite you?</p>
-      <div className="space-y-3">
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage III: Continental Regions</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Which heritage regions excite you?</p>
+      <div className="space-y-1.5">
         {regions.map(r => {
           const isSelected = answers.regions.includes(r.id);
           return (
             <button
               key={r.id}
               onClick={() => toggleArrayItem('regions', r.id)}
-              className={`w-full p-4 rounded-xl border flex items-center gap-4 transition-all duration-300 ${
+              className={`w-full p-2.5 rounded-xl border flex items-center gap-3 transition-all duration-300 ${
                 isSelected 
                   ? 'bg-gold-500/10 border-gold-500 text-gold-400' 
-                  : 'bg-glass border-glass-border hover:bg-glass-hover'
+                  : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/20'
               }`}
             >
-              <span className="text-3xl">{r.flag}</span>
-              <span className="font-medium text-lg flex-1 text-left">{r.label}</span>
-              {isSelected && <Check className="w-5 h-5 text-gold-500" />}
+              <span className="text-2xl shrink-0">{r.flag}</span>
+              <span className="font-medium text-sm flex-1 text-left">{r.label}</span>
+              {isSelected ? (
+                <Check className="w-4 h-4 text-gold-400" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border border-white/10" />
+              )}
             </button>
           )
         })}
@@ -364,27 +450,27 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderAIIntro = () => (
-    <div className="w-full max-w-lg text-center">
-      <div className="w-24 h-24 rounded-full bg-gold-500/20 border border-gold-500/50 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(198,169,107,0.2)]">
-        <Sparkles className="w-12 h-12 text-gold-400" />
+    <div className="w-full max-w-md text-center">
+      <div className="w-14 h-14 rounded-full bg-gold-500/10 border border-gold-500/30 flex items-center justify-center mx-auto mb-3 shadow-[0_0_25px_rgba(198,169,107,0.1)]">
+        <Sparkles className="w-6 h-6 text-gold-400 animate-pulse" />
       </div>
-      <h2 className="text-3xl font-serif text-ivory mb-2">Meet Your AfriSommelier</h2>
-      <p className="text-gray-400 mb-10 font-serif text-lg">Refined, warm, knowledgeable.</p>
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage IV: Meet Your AfriSommelier</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Refined, warm, deeply knowledgeable.</p>
       
-      <div className="bg-glass border border-glass-border rounded-xl p-4 space-y-4 text-left">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-wine-800 flex items-center justify-center shrink-0">
-            <User className="w-4 h-4 text-gray-300" />
+      <div className="bg-glass border border-glass-border rounded-xl p-3 space-y-3 text-left">
+        <div className="flex gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+            <User className="w-3.5 h-3.5 text-gray-300" />
           </div>
-          <div className="bg-wine-900/50 p-3 rounded-2xl rounded-tl-none border border-glass-border text-sm text-ivory">
+          <div className="bg-[#151518]/50 p-2.5 rounded-xl rounded-tl-none border border-white/5 text-xs text-ivory">
             What wine pairs with proper spicy Jollof rice?
           </div>
         </div>
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-gold-500/20 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-gold-500" />
+        <div className="flex gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-gold-500/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-gold-400" />
           </div>
-          <div className="bg-gold-500/10 p-3 rounded-2xl rounded-tl-none border border-gold-500/30 text-sm text-gold-100 flex-1 min-h-[44px]">
+          <div className="bg-gold-500/5 p-2.5 rounded-xl rounded-tl-none border border-gold-500/20 text-xs text-gold-100 flex-1 min-h-[40px] leading-relaxed">
             {aiTyping}
             {aiTyping.length < 80 && <span className="animate-pulse">|</span>}
           </div>
@@ -394,25 +480,29 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderInterests = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-serif text-ivory mb-2">Experience Personalization</h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg">Beyond the glass.</p>
-      <div className="space-y-3">
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage IV: Experience Personalization</h2>
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Beyond the glass.</p>
+      <div className="space-y-1.5">
         {interests.map(i => {
           const isSelected = answers.interests.includes(i.id);
           return (
             <button
               key={i.id}
               onClick={() => toggleArrayItem('interests', i.id)}
-              className={`w-full p-4 rounded-xl border flex items-center gap-4 transition-all duration-300 ${
+              className={`w-full p-2.5 rounded-xl border flex items-center gap-3 transition-all duration-300 ${
                 isSelected 
                   ? 'bg-gold-500/10 border-gold-500 text-gold-400' 
-                  : 'bg-glass border-glass-border hover:bg-glass-hover'
+                  : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/20'
               }`}
             >
-              <span className="text-2xl">{i.emoji}</span>
-              <span className="font-medium flex-1 text-left">{i.label}</span>
-              {isSelected && <Check className="w-5 h-5 text-gold-500" />}
+              <span className="text-xl shrink-0">{i.emoji}</span>
+              <span className="font-medium text-sm flex-1 text-left">{i.label}</span>
+              {isSelected ? (
+                <Check className="w-4 h-4 text-gold-400" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border border-white/10" />
+              )}
             </button>
           )
         })}
@@ -421,20 +511,20 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderAuth = () => (
-    <div className="w-full max-w-lg">
-      <h2 className="text-4xl font-serif text-ivory mb-2 text-center">
-        {isLoginOnly ? 'Log In to Your Cellar' : 'Open Your Cellar'}
+    <div className="w-full max-w-md">
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">
+        {isLoginOnly ? 'Log In to Your Cellar' : 'Stage IV: Save Wine Passport'}
       </h2>
-      <p className="text-gray-400 mb-8 font-serif italic text-lg text-center">
-        {isLoginOnly ? 'Welcome back to your curated experience.' : 'Your preferences unlock a fully curated experience.'}
+      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">
+        {isLoginOnly ? 'Welcome back to your curated experience.' : 'Save your custom Taste DNA profile.'}
       </p>
       
-      <div className="bg-glass border border-glass-border rounded-3xl p-6 shadow-2xl relative overflow-hidden text-left">
+      <div className="bg-glass border border-glass-border rounded-2xl p-4 md:p-5 shadow-2xl relative overflow-hidden text-left">
         {!isLoginOnly && (
-          <div className="flex mb-6 bg-wine-900/50 rounded-xl p-1 relative z-10">
+          <div className="flex mb-4 bg-black/40 rounded-xl p-1 relative z-10">
             <button
               onClick={() => { setIsLogin(false); setAuthError(null); }}
-              className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
                 !isLogin ? 'bg-gold-500/20 text-gold-400 shadow-sm' : 'text-gray-400 hover:text-ivory'
               }`}
             >
@@ -442,7 +532,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
             </button>
             <button
               onClick={() => { setIsLogin(true); setAuthError(null); }}
-              className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
                 isLogin ? 'bg-gold-500/20 text-gold-400 shadow-sm' : 'text-gray-400 hover:text-ivory'
               }`}
             >
@@ -451,29 +541,29 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           </div>
         )}
 
-        <form onSubmit={handleAuthSubmit} className="space-y-4">
+        <form onSubmit={handleAuthSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Email</label>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-300 mb-1 ml-1 font-bold">Email Address</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-500" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Mail className="h-4 w-4 text-gray-500" />
               </div>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="block w-full pl-11 pr-4 py-3.5 bg-wine-900/50 border border-glass-border rounded-xl text-ivory placeholder-gray-500 focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-colors"
+                className="block w-full pl-10 pr-4 py-2 bg-[#121215]/50 border border-white/5 rounded-xl text-sm text-ivory placeholder-gray-600 focus:ring-1 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all font-sans"
                 placeholder="you@example.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Password</label>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-300 mb-1 ml-1 font-bold">Password</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-500" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Lock className="h-4 w-4 text-gray-500" />
               </div>
               <input
                 type="password"
@@ -481,15 +571,15 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 minLength={6}
-                className="block w-full pl-11 pr-4 py-3.5 bg-wine-900/50 border border-glass-border rounded-xl text-ivory placeholder-gray-500 focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-colors"
+                className="block w-full pl-10 pr-4 py-2 bg-[#121215]/50 border border-white/5 rounded-xl text-sm text-ivory placeholder-gray-600 focus:ring-1 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all font-sans"
                 placeholder="••••••••"
               />
             </div>
           </div>
 
           {authError && (
-            <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-sm flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-xs flex items-start gap-1.5 leading-relaxed">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <p>{authError}</p>
             </div>
           )}
@@ -497,19 +587,19 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full bg-gold-500 text-wine-900 font-medium py-4 rounded-xl hover:bg-gold-400 transition-colors flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(198,169,107,0.2)] mt-6 disabled:opacity-70"
+            className="w-full bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 font-semibold py-2.5 rounded-xl hover:bg-gold-400 transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(198,169,107,0.15)] mt-4 disabled:opacity-50 text-sm"
           >
             {isSaving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : isLogin ? (
               <>
-                <LogIn className="w-5 h-5" />
+                <LogIn className="w-4 h-4" />
                 Sign In to Cellar
               </>
             ) : (
               <>
-                <UserPlus className="w-5 h-5" />
-                Create Account
+                <UserPlus className="w-4 h-4" />
+                Configure Taste DNA
               </>
             )}
           </button>
@@ -519,42 +609,42 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderCelebration = () => (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center bg-wine-900">
-      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23c6a96b\" fill-opacity=\"1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')" }}></div>
-      <div className="relative z-10 w-full max-w-lg">
+    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center bg-[#0B0B0C]">
+      <div className="absolute inset-0 z-0 opacity-5 pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23c6a96b\" fill-opacity=\"1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')" }}></div>
+      <div className="relative z-10 w-full max-w-sm">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", duration: 0.8 }}
-          className="w-32 h-32 rounded-full bg-gold-500/20 border-2 border-gold-500/50 flex flex-col items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(198,169,107,0.3)] relative"
+          className="w-24 h-24 rounded-full bg-gold-500/10 border border-gold-500/30 flex flex-col items-center justify-center mx-auto mb-6 shadow-[0_0_35px_rgba(198,169,107,0.15)] relative"
         >
-          <Compass className="w-12 h-12 text-gold-400 mb-1" />
-          <span className="text-xs text-gold-500 font-bold tracking-widest uppercase">Badge</span>
-          <div className="absolute -bottom-3 bg-wine-900 border border-gold-500 px-3 py-1 rounded-full text-gold-400 text-xs font-bold shadow-lg">
+          <Compass className="w-8 h-8 text-gold-400 mb-0.5" />
+          <span className="text-[9px] text-gold-500 font-bold tracking-widest uppercase">Passport</span>
+          <div className="absolute -bottom-2.5 bg-[#151518] border border-gold-500/50 px-3 py-0.5 rounded-full text-gold-400 text-[10px] font-bold shadow-lg">
             FIRST SIP
           </div>
         </motion.div>
         
         <motion.h2 
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-4xl font-serif text-ivory mb-4"
+          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+          className="text-2xl font-serif text-ivory mb-2 font-semibold"
         >
           Taste Passport Unlocked
         </motion.h2>
         <motion.p 
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-gray-300 font-serif text-xl mb-10"
+          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
+          className="text-gray-400 font-serif text-sm italic mb-6 max-w-xs mx-auto"
         >
-          Your taste journey begins now.
+          "Your custom wine tasting history and curation is ready for exploration."
         </motion.p>
         
         <motion.button
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}
+          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}
           onClick={handleNextClick}
-          className="w-full py-4 rounded-xl bg-gold-500 text-wine-900 font-semibold text-lg hover:bg-gold-400 transition-colors shadow-[0_0_30px_rgba(198,169,107,0.3)] shadow-gold-500/20 group flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 font-semibold text-sm hover:from-gold-500 hover:to-gold-400 transition-all duration-300 shadow-[0_4px_20px_rgba(198,169,107,0.2)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2"
         >
           Enter Your Cellar
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </motion.button>
       </div>
     </div>
@@ -577,69 +667,104 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
 
   const showHeader = step !== 0 && step !== 8;
 
+  const winemakingStages = [
+    { id: 1, tag: 'Harvest', name: '1. Harvest & Select', activeSteps: [1] },
+    { id: 2, tag: 'Crush', name: '2. Crush & Press', activeSteps: [2] },
+    { id: 3, tag: 'Ferment', name: '3. Ferment & Age', activeSteps: [3, 4] },
+    { id: 4, tag: 'Bottle', name: '4. Blend & Bottle', activeSteps: [5, 6, 7] },
+  ];
+
   return (
-    <div className="min-h-screen bg-wine-900 flex flex-col items-center justify-center relative overflow-hidden selection:bg-gold-500/30">
-      {/* Background Ambience */}
-      {showHeader && (
-        <>
-          <div className="absolute inset-0 bg-gradient-to-br from-wine-800 to-wine-900 z-0"></div>
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[100px] z-0 pointer-events-none transition-all duration-1000 delay-300" style={{ transform: `translate(-50%, ${step * 5}px)` }}></div>
-        </>
-      )}
+    <div className="min-h-screen bg-[#0B0B0C] text-ivory flex flex-col items-center justify-between relative overflow-hidden selection:bg-gold-500/30 font-sans py-4">
+      {/* Background Ambience / Wine Glow */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0e0e11] to-[#08080a] z-0" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[350px] h-[350px] md:w-[600px] md:h-[600px] bg-wine-500/5 rounded-full blur-[120px] z-0 pointer-events-none transition-all duration-1000" style={{ transform: `translate(-50%, ${step * 4}px)` }} />
+      <div className="absolute bottom-10 right-10 w-48 h-48 bg-gold-500/5 rounded-full blur-[80px] z-0 pointer-events-none" />
 
       {showHeader && (
-        <div className="absolute top-0 inset-x-0 p-6 z-20">
-          <div className="max-w-lg mx-auto">
-            {/* Progress Bar */}
-            <div className="flex justify-between gap-1 mb-2">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div 
-                  key={i} 
-                  className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                    step >= i ? 'bg-gold-500 shadow-[0_0_10px_rgba(198,169,107,0.5)]' : 'bg-glass-border'
-                  }`}
-                />
-              ))}
+        <div className="w-full max-w-lg px-6 z-20 mt-2">
+          {/* 4 Stages of Winemaking Visual Indicator */}
+          <div className="bg-black/30 backdrop-blur-md rounded-2xl border border-white/5 p-3 mb-3">
+            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold-400/80 mb-2.5 text-center font-bold">
+              Winemaking Stage
             </div>
-            <div className="flex justify-between items-center text-sm font-serif text-gray-400">
-              <button 
-                onClick={back}
-                className="hover:text-ivory transition-colors disabled:opacity-0"
-                disabled={step === 1 || (step === 7 && !isLoginOnly)}
-              >
-                Back
-              </button>
-              <span className="text-gold-500 font-medium">Step {Math.min(step, 6)} of 6</span>
+            <div className="flex items-center justify-between gap-1">
+              {winemakingStages.map((stage, idx) => {
+                const isActive = stage.activeSteps.includes(step);
+                const isCompleted = stage.activeSteps.every(st => step > st) || 
+                  (idx === 0 && step > 1) || 
+                  (idx === 1 && step > 2) || 
+                  (idx === 2 && step > 4);
+
+                return (
+                  <div key={stage.id} className="flex-1 flex flex-col items-center relative">
+                    <div className="flex items-center w-full">
+                      {idx > 0 && (
+                        <div className={`h-[1px] flex-1 transition-all duration-500 ${isCompleted || isActive ? 'bg-gold-500' : 'bg-white/10'}`} />
+                      )}
+                      <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-mono font-bold transition-all duration-500 shrink-0 ${
+                        isActive 
+                          ? 'bg-gold-500 border-gold-400 text-wine-950 ring-4 ring-gold-500/20 scale-105' 
+                          : isCompleted 
+                            ? 'bg-gold-500/20 border-gold-500 text-gold-400' 
+                            : 'bg-[#151518] border-white/5 text-gray-500'
+                      }`}>
+                        {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : stage.id}
+                      </div>
+                      {idx < 3 && (
+                        <div className={`h-[1px] flex-1 transition-all duration-500 ${isCompleted ? 'bg-gold-500' : 'bg-white/10'}`} />
+                      )}
+                    </div>
+                    <span className={`text-[9px] uppercase tracking-wider font-semibold mt-1 font-mono transition-colors duration-300 ${
+                      isActive ? 'text-gold-400' : isCompleted ? 'text-gold-500/70' : 'text-gray-500'
+                    }`}>
+                      {stage.tag}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
+          </div>
+
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <button 
+              onClick={back}
+              className="hover:text-gold-400 transition-colors disabled:opacity-0 flex items-center gap-1 py-1 px-2 -ml-2 rounded-lg hover:bg-white/5"
+              disabled={step === 1 || (step === 7 && !isLoginOnly)}
+            >
+              Back
+            </button>
+            <span className="text-gold-500 font-mono text-[11px] font-semibold tracking-wider">Step {Math.min(step, 6)}/6</span>
           </div>
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: step === 0 || step === 8 ? 0 : 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: step === 0 || step === 8 ? 0 : -20 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative z-10 w-full flex justify-center px-6"
-        >
-          {renderCurrentStep()}
-        </motion.div>
-      </AnimatePresence>
+      {/* Main step view slot with tight layouts */}
+      <div className="w-full flex-1 flex items-center justify-center overflow-y-auto max-w-lg px-6 my-4 z-10">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="w-full flex justify-center py-2"
+          >
+            {renderCurrentStep()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {showHeader && step !== 7 && (
-        <div className="absolute bottom-0 inset-x-0 p-6 z-20 bg-gradient-to-t from-wine-900 via-wine-900 to-transparent">
-          <div className="max-w-lg mx-auto flex justify-end">
-            <button
-              onClick={handleNextClick}
-              disabled={isSaving || (step === 1 && !answers.identity)}
-              className="flex items-center gap-2 px-8 py-3.5 rounded-xl font-medium bg-gold-500 text-wine-900 hover:bg-gold-400 shadow-[0_0_20px_rgba(198,169,107,0.3)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
-              {!isSaving && <ArrowRight className="w-5 h-5" />}
-            </button>
-          </div>
+        <div className="w-full max-w-lg px-6 pb-4 pt-1 z-20 flex justify-end">
+          <button
+            onClick={handleNextClick}
+            disabled={isSaving || (step === 1 && !answers.identity)}
+            className="flex items-center justify-center gap-2 w-full xs:w-auto px-8 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 hover:from-gold-500 hover:to-gold-400 shadow-[0_4px_20px_rgba(198,169,107,0.2)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] text-sm"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continue'}
+            {!isSaving && <ArrowRight className="w-4 h-4" />}
+          </button>
         </div>
       )}
     </div>

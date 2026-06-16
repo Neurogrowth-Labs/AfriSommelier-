@@ -16,11 +16,11 @@ function calculateSmartAlert(vintage: string) {
   return { status: 'Hold ⏳', color: 'text-blue-400' };
 }
 
-export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void }) {
+export default function CellarTab({ onSelectWine, onNavigate, initialViewMode = 'cellar' }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void, initialViewMode?: 'cellar' | 'wishlist' }) {
   const [wines, setWines] = useState<any[]>([]);
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'cellar' | 'wishlist'>('cellar');
+  const [viewMode, setViewMode] = useState<'cellar' | 'wishlist'>(initialViewMode);
   const [layoutMode, setLayoutMode] = useState<'grid' | 'shelf'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'vintage' | 'price' | 'dateAdded'>('dateAdded');
   const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -39,7 +39,7 @@ export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: 
         .eq('user_id', user.id);
         
       if (!error && data) {
-        const fetchedWines = data.map(doc => {
+        const fetchedWines = data.map((doc: any) => {
           const smartAlert = calculateSmartAlert(doc.vintage);
           return { ...doc, status: smartAlert.status, statusColor: smartAlert.color };
         });
@@ -147,8 +147,9 @@ export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: 
           <p className="text-gray-400 text-sm">{wines.length} Bottles • R {totalValue.toLocaleString()}</p>
         </div>
         <button 
-          onClick={() => setShowAddModal(true)}
+          onClick={() => onNavigate('collection-add')}
           className="w-10 h-10 rounded-full bg-glass border border-glass-border flex items-center justify-center hover:bg-white/10 transition-colors"
+          id="add_wine_plus_btn"
         >
           <Plus size={20} />
         </button>
@@ -173,30 +174,39 @@ export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: 
         
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
-            <button 
-              onClick={() => setLayoutMode('grid')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'grid' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
-            >
-              Grid
-            </button>
-            <button 
-              onClick={() => setLayoutMode('shelf')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'shelf' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
-            >
-              Shelf
-            </button>
+            {viewMode === 'cellar' && (
+              <>
+                <button 
+                  onClick={() => setLayoutMode('grid')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'grid' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+                >
+                  Grid
+                </button>
+                <button 
+                  onClick={() => setLayoutMode('shelf')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'shelf' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+                >
+                  Shelf
+                </button>
+              </>
+            )}
+            {viewMode === 'wishlist' && (
+              <span className="text-xs font-mono text-gray-500 uppercase tracking-widest pl-1 py-1">
+                Wishlist Vault
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Sort:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-400 font-medium">Sort:</span>
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-glass border border-glass-border rounded-lg py-1.5 px-3 text-sm text-ivory focus:outline-none focus:border-gold-500"
+              className="bg-glass border border-glass-border rounded-lg py-1 px-2 text-xs text-ivory focus:outline-none focus:border-gold-500 w-28 md:w-32 cursor-pointer font-medium"
             >
-              <option value="name">Name (A-Z)</option>
-              <option value="dateAdded">Date Added (Newest)</option>
-              <option value="vintage">Vintage (Newest)</option>
-              <option value="price">Price (Highest)</option>
+              <option value="name">Name</option>
+              <option value="dateAdded">Added</option>
+              <option value="vintage">Vintage</option>
+              <option value="price">Price</option>
             </select>
           </div>
         </div>
@@ -227,7 +237,7 @@ export default function CellarTab({ onSelectWine, onNavigate }: { onSelectWine: 
           <p>Your {viewMode} is empty.</p>
           <p className="text-sm mt-2">Scan or discover a bottle to add it.</p>
         </div>
-      ) : layoutMode === 'grid' ? (
+      ) : (layoutMode === 'grid' || viewMode === 'wishlist') ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {displayData.map((wine) => (
             <CellarBottle 

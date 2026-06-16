@@ -66,7 +66,7 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
           let regionCounts: Record<string, number> = {};
           let varietalCounts: Record<string, number> = {};
 
-          snapshot?.forEach(doc => {
+          snapshot?.forEach((doc: any) => {
             if (doc.wine_name) unique.add(doc.wine_name);
             if (doc.region) regionCounts[doc.region] = (regionCounts[doc.region] || 0) + 1;
             if (doc.grape) varietalCounts[doc.grape] = (varietalCounts[doc.grape] || 0) + 1;
@@ -95,7 +95,7 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
         // Setup realtime subscription
         profilesChannel = supabase
           .channel(`profiles_changes_${user.id}_${Date.now()}`)
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload: any) => {
              const newProfile = payload.new;
              if (isMounted) {
                if (newProfile.first_name) setFirstName(newProfile.first_name);

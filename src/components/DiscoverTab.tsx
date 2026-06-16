@@ -112,28 +112,6 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
       {/* Quick Filter Chips */}
       <div className="flex overflow-x-auto hide-scrollbar px-6 gap-2 mb-6">
         <button 
-          onClick={() => { setFilterPrice('Under R150'); handleSearch(); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
-        >
-          Under R200
-        </button>
-        <button 
-          onClick={() => { setFilterPrice('Over R600'); handleSearch(); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
-        >
-          Luxury
-        </button>
-        <button 
-          onClick={() => { setFilterRegion('Constantia'); handleSearch(); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
-        >
-          Cape Town Nearby
-        </button>
-      </div>
-
-      {/* Quick Filter Chips */}
-      <div className="flex overflow-x-auto hide-scrollbar px-6 gap-2 mb-6">
-        <button 
           onClick={() => { setFilterPrice('Under R150'); handleSearch(undefined, { price: 'Under R150' }); }}
           className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
         >
@@ -311,12 +289,12 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
       <div className="mb-12">
         <h3 className="text-xl font-semibold px-6 mb-4">Grapes</h3>
         <div className="flex flex-wrap gap-3 px-6">
-          <GrapeChip name="Pinotage 🇿🇦" onClick={() => { setFilterGrape('Pinotage'); handleSearch(undefined, { grape: 'Pinotage' }); }} />
-          <GrapeChip name="Chenin Blanc" onClick={() => { setFilterGrape('Chenin Blanc'); handleSearch(undefined, { grape: 'Chenin Blanc' }); }} />
-          <GrapeChip name="Shiraz" onClick={() => { setFilterGrape('Shiraz'); handleSearch(undefined, { grape: 'Shiraz' }); }} />
-          <GrapeChip name="Cabernet Sauvignon" onClick={() => { setFilterGrape('Cabernet Sauvignon'); handleSearch(undefined, { grape: 'Cabernet Sauvignon' }); }} />
-          <GrapeChip name="Merlot" onClick={() => { setFilterGrape('Merlot'); handleSearch(undefined, { grape: 'Merlot' }); }} />
-          <GrapeChip name="Chardonnay" onClick={() => { setFilterGrape('Chardonnay'); handleSearch(undefined, { grape: 'Chardonnay' }); }} />
+          <GrapeChip name="Pinotage 🇿🇦" onClick={() => { window.history.pushState(null, '', '/grapes/pinotage'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Chenin Blanc" onClick={() => { window.history.pushState(null, '', '/grapes/chenin-blanc'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Shiraz" onClick={() => { window.history.pushState(null, '', '/grapes/shiraz'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Cabernet Sauvignon" onClick={() => { window.history.pushState(null, '', '/grapes/cabernet-sauvignon'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Merlot" onClick={() => { window.history.pushState(null, '', '/grapes/merlot'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Chardonnay" onClick={() => { window.history.pushState(null, '', '/grapes/chardonnay'); window.dispatchEvent(new Event('popstate')); }} />
         </div>
       </div>
 

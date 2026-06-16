@@ -8,10 +8,20 @@ import { callOpenRouter } from '../services/openRouterService';
 export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) => void }) {
   const [isScanning, setIsScanning] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [scanResult, setScanResult] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showAR, setShowAR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const STAGES = [
+    "Analyzing Bottle Shape...",
+    "Reading Label...",
+    "Identifying Producer...",
+    "Checking Global Database...",
+    "Matching Vintage...",
+    "Generating Tasting Notes..."
+  ];
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -26,6 +36,18 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
 
     setIsScanning(false);
     setIsProcessing(true);
+    setActiveStageIndex(0);
+
+    // Dynamic processing stages timer ticking every 1.2s
+    const interval = setInterval(() => {
+      setActiveStageIndex((prev) => {
+        if (prev < STAGES.length - 1) {
+          return prev + 1;
+        }
+        clearInterval(interval);
+        return prev;
+      });
+    }, 1200);
 
     try {
       // Convert file to base64 for vision API
@@ -196,6 +218,12 @@ For a single wine label, extract its details. For a restaurant menu, extract the
             </button>
           </div>
 
+          {/* New HUD with rich page Title and Hero description */}
+          <div className="text-center space-y-2 bg-black/60 backdrop-blur-md p-5 rounded-2xl border border-white/5 my-4 mx-2 max-w-sm absolute top-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)]">
+            <h2 className="text-lg font-serif font-bold text-gold-400">AI Wine Recognition</h2>
+            <p className="text-xs text-gray-300">Take a photo of any wine label and let Sommelier AI instantly identify it.</p>
+          </div>
+
           <div className="flex justify-center items-center gap-8">
             <input 
               type="file" 
@@ -228,10 +256,34 @@ For a single wine label, extract its details. For a restaurant menu, extract the
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-30"
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center z-30 p-6"
           >
-            <Loader2 className="w-12 h-12 text-gold-500 animate-spin mb-6" />
-            <p className="text-gold-500 font-serif text-xl animate-pulse">Analyzing Label...</p>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-14 h-14 border-4 border-gold-500 border-t-transparent rounded-full mb-8 shadow-[0_0_20px_rgba(198,169,107,0.3)]"
+            />
+            
+            <h3 className="text-xl font-serif font-bold text-gold-450 mb-1">Scanning Wine bottle</h3>
+            <p className="text-xs font-mono text-gray-400 uppercase tracking-widest animate-pulse h-6">
+              {STAGES[activeStageIndex]}
+            </p>
+
+            {/* Stage Stepper progress indicator list */}
+            <div className="mt-8 space-y-2.5 max-w-xs text-left bg-wine-950/40 border border-white/5 rounded-2xl p-4.5 w-full">
+              {STAGES.map((stg, i) => {
+                const isSelected = i === activeStageIndex;
+                const isCompleted = i < activeStageIndex;
+                return (
+                  <div key={i} className="flex items-center gap-3 text-xs">
+                    <div className={`w-2.5 h-2.5 rounded-full transition-all ${isCompleted ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)]' : isSelected ? 'bg-gold-500 animate-ping' : 'bg-gray-850'}`} />
+                    <span className={isCompleted ? 'text-green-400/80 font-medium' : isSelected ? 'text-gold-400 font-bold' : 'text-gray-500'}>
+                      {stg}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
 

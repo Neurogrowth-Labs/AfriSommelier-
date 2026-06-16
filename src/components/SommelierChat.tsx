@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Send, Mic, Sparkles, ChevronRight, Brain, Volume2, Loader2 } from 'lucide-react';
+import { X, Send, Mic, Sparkles, ChevronRight, Brain, Volume2, Loader2, Heart } from 'lucide-react';
 import WinePourLoader from './WinePourLoader';
 import { WINE_FARMS_KNOWLEDGE } from '../data/wineKnowledge';
 import { WINE_COURSE_KNOWLEDGE } from '../data/educationalCourseKnowledge';
@@ -18,9 +18,32 @@ export default function SommelierChat({ onClose, initialMessage }: { onClose: ()
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isDeepAnalysis, setIsDeepAnalysis] = useState(false);
+  const [isCupidoMode, setIsCupidoMode] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  const handleToggleCupidoMode = () => {
+    const nextMode = !isCupidoMode;
+    setIsCupidoMode(nextMode);
+    if (nextMode) {
+      setMessages(prev => [
+        ...prev, 
+        { 
+          role: 'model', 
+          text: "Greetings, lovers. I am Cupido AI, your romantic master coupling expert. Tell me about your dream date night—be it under the starry Stellenbosch skies, a cozy oceanside fireside, or a private candlelit estate room. I will architect the perfect romantic date complete with South African wine pairings, sensory settings, and musical vibes. 💖" 
+        }
+      ]);
+    } else {
+      setMessages(prev => [
+        ...prev, 
+        { 
+          role: 'model', 
+          text: "Returned to Master Sommelier AI mode. What classical wine pairings or cellar query can I assist you with?" 
+        }
+      ]);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,7 +131,26 @@ export default function SommelierChat({ onClose, initialMessage }: { onClose: ()
         { role: 'user', content: userMsg }
       ];
 
-      const systemInstruction = `You are a Master Sommelier specializing in South African wines. Keep your answers concise, elegant, and helpful. You must return your response strictly as a JSON object responding with valid JSON only.
+      const systemInstruction = isCupidoMode
+        ? `You are Cupido AI, a highly passionate, poetic, and world-class AI Romantic Date Expert and master coupling agent specializing in romantic South African date planning and wine parings.
+Your tone is incredibly warm, charming, intimate, artistic, and expert.
+When the user asks for date ideas, planning help, or romantic suggestions, design an beautifully vivid, step-by-step romantic schedule (referencing gorgeous South African locations like beaches in Cape Town, twilight sunset picnics in Franschhoek, firesides in Stellenbosch, or mountain walks).
+Integrate candlelit menu hints, sensory mood lighting ideas, atmospheric details, music genre tips, and recommend at least one spectacular South African wine pairing (such as MCC/Cap Classique sparkling wines, noble late harvest nectars, robust Pinotages, or fine white blends) that adds spark to their dynamic.
+You must return your response strictly as a JSON object responding with valid JSON only.
+Structure:
+{
+  "message": "A poetically written, evocative romantic romantic date curation from Cupido AI. Emphasize candlelit mood setting, soundscapes, and sensory chemistry.",
+  "wines": [
+    {
+      "name": "string",
+      "vintage": "string",
+      "region": "string",
+      "price": "string",
+      "reason": "Why this South African selection is perfect for spark-filled dates."
+    }
+  ]
+}`
+        : `You are a Master Sommelier specializing in South African wines. Keep your answers concise, elegant, and helpful. You must return your response strictly as a JSON object responding with valid JSON only.
 Structure:
 {
   "message": "A conversational, elegant response from the sommelier.",
@@ -170,25 +212,39 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
-      className="fixed inset-0 z-50 flex flex-col items-center bg-wine-900/95 backdrop-blur-xl"
+      className={`fixed inset-0 z-50 flex flex-col items-center backdrop-blur-xl transition-colors duration-500 ${isCupidoMode ? 'bg-[#240A15]/96 shadow-[inset_0_0_100px_rgba(219,39,119,0.15)]' : 'bg-wine-900/95'}`}
     >
      <div className="flex flex-col w-full h-full max-w-4xl relative">
       {/* Header */}
-      <div className="flex justify-between items-center p-6 border-b border-glass-border shrink-0">
+      <div className={`p-6 border-b border-glass-border shrink-0 transition-colors duration-500 flex justify-between items-center ${isCupidoMode ? 'bg-pink-950/20' : 'bg-transparent'}`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-wine-800 flex items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(198,169,107,0.3)]">
             <div className="absolute inset-0 bg-gold-500/20 blur-md animate-pulse"></div>
-            <Sparkles size={18} className="text-gold-500 relative z-10" />
+            {isCupidoMode ? (
+              <Heart size={18} className="text-pink-400 relative z-10 animate-bounce" />
+            ) : (
+              <Sparkles size={18} className="text-gold-500 relative z-10" />
+            )}
           </div>
           <div>
-            <h2 className="font-serif text-xl font-medium text-ivory">Sommelier AI</h2>
-            <div className="flex items-center gap-2 mt-0.5">
+            <h2 className="font-serif text-xl font-medium text-ivory">
+              {isCupidoMode ? 'Cupido AI' : 'Sommelier AI'}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
               <button 
                 onClick={() => setIsDeepAnalysis(!isDeepAnalysis)}
                 className={`flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full border transition-colors ${isDeepAnalysis ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' : 'bg-glass border-glass-border text-gray-400'}`}
               >
                 <Brain size={10} />
                 Deep Analysis {isDeepAnalysis ? 'ON' : 'OFF'}
+              </button>
+              
+              <button 
+                onClick={handleToggleCupidoMode}
+                className={`flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full border transition-all active:scale-[0.97] ${isCupidoMode ? 'bg-pink-500 text-white border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.45)]' : 'bg-pink-950/40 border-pink-700/60 text-pink-300 hover:bg-pink-900/50'}`}
+              >
+                <Heart size={10} className={`${isCupidoMode ? 'fill-white animate-pulse' : ''}`} />
+                {isCupidoMode ? 'Cupido AI Active ❤️' : 'Activate Cupido AI'}
               </button>
             </div>
           </div>
@@ -262,9 +318,19 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
       {/* Input Area */}
       <div className="p-6 pb-10">
         <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-4">
-          <button onClick={() => setInput('Wine for braai')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Wine for braai</button>
-          <button onClick={() => setInput('Under R200')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Under R200</button>
-          <button onClick={() => setInput('Bold red')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Bold red</button>
+          {isCupidoMode ? (
+            <>
+              <button onClick={() => setInput('Plan a romantic sunset beach picnic with Cap Classique sparkle 🥂')} className="px-4 py-2 rounded-full border border-pink-500/30 bg-pink-950/20 text-xs whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Sunset picnic 🥂</button>
+              <button onClick={() => setInput('Design a luxurious candlelit dinner with a premium Stellenbosch Pinotage pairing 🕯️')} className="px-4 py-2 rounded-full border border-pink-500/30 bg-pink-950/20 text-xs whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Candlelit dinner 🕯️</button>
+              <button onClick={() => setInput('Cozy fireside date plan under the stars with a sweet Cape late harvest wine 🌌')} className="px-4 py-2 rounded-full border border-pink-500/30 bg-pink-950/20 text-xs whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Fireside date 🌌</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setInput('Wine for braai')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Wine for braai</button>
+              <button onClick={() => setInput('Under R200')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Under R200</button>
+              <button onClick={() => setInput('Bold red')} className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors">Bold red</button>
+            </>
+          )}
         </div>
         
         <div className="relative flex items-center">
@@ -279,7 +345,7 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isListening ? "Listening..." : "Ask your sommelier..."} 
+            placeholder={isListening ? "Listening..." : isCupidoMode ? "Describe your dream date setup to Cupido AI..." : "Ask your sommelier..."} 
             className="w-full bg-glass border border-glass-border rounded-full py-4 pl-12 pr-14 text-sm text-ivory placeholder-gray-400 focus:outline-none focus:border-gold-500 transition-colors"
           />
           <button 
