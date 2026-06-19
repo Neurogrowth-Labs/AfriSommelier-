@@ -165,7 +165,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
       <div className="px-6 mb-8 mt-2">
         <div className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] uppercase mb-3 flex items-center gap-2">
            <div className="w-6 h-px bg-[#C8A24A]/40"></div>
-           Afrisommelier Estate
+           Enoviq Estate
         </div>
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}

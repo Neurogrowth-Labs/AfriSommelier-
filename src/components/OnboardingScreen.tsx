@@ -215,37 +215,25 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
     <motion.div 
       key="step-0"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-between pt-24 pb-12 px-6 z-20 text-center bg-[#050505]"
+      className="absolute inset-0 flex flex-col items-center justify-between pt-4 pb-28 px-6 z-20 text-center bg-[#050505]"
     >
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Subtle geometric lines reflecting the heritage theme */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#C8A24A 1px, transparent 1px), linear-gradient(90deg, #C8A24A 1px, transparent 1px)', backgroundSize: '40px 40px', backgroundPosition: 'center' }}></div>
       </div>
       
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center select-none flex-1">
-        {/* Fine gold border badge */}
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#C8A24A]/30 bg-[#12100C] mb-8 shadow-[0_0_15px_rgba(200,162,74,0.15)]"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C8A24A] animate-pulse" />
-          <span className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] font-bold uppercase">AfriSommelier Estate</span>
-        </motion.div>
-
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center select-none flex-1 pt-4">
         {/* Elegant wine glasses visual descriptor */}
         <motion.h1 
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-4xl font-serif font-normal text-[#F2E7D5] mb-4 leading-[1.1] tracking-tight px-1"
+          className="text-4xl font-serif font-normal text-[#F2E7D5] mb-2 leading-[1.1] tracking-tight px-1 mt-2"
         >
-          Curated <br/>
-          <span className="text-[#C8A24A] font-bold italic">African Terroir</span>
+          Enoviq <span className="text-[#C8A24A] font-bold italic">Estate</span>
         </motion.h1>
         
         <motion.p 
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-          className="text-[#F2E7D5]/70 text-[13px] mb-8 font-serif leading-relaxed italic max-w-[280px] mx-auto"
+          className="text-[#F2E7D5]/70 text-[13px] mb-4 font-serif leading-relaxed italic max-w-[280px] mx-auto"
         >
           "An AI-designed sommelier mapping, unlocking winemaking heritage, perfect pairings and investment-grade cellar yields."
         </motion.p>
@@ -255,37 +243,29 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.5 }}
-           className="w-full bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/20 p-5 rounded-xl text-left space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] mb-10"
+           className="w-full bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/20 p-5 rounded-xl text-center space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] mb-6"
         >
            <h3 className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] text-center font-bold uppercase mb-2">The 4 Winemaking Stages</h3>
            <div className="grid grid-cols-2 gap-4">
-              <div className="flex gap-3">
-                 <span className="text-[#C8A24A] mt-0.5">🌾</span>
-                 <div>
-                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Harvest</h4>
-                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Handpicking peak African fruit.</p>
-                 </div>
+              <div className="flex flex-col items-center text-center">
+                 <span className="text-[#C8A24A] text-lg mb-1">🌾</span>
+                 <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Harvest</h4>
+                 <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Handpicking peak African fruit.</p>
               </div>
-              <div className="flex gap-3">
-                 <span className="text-[#C8A24A] mt-0.5">🍇</span>
-                 <div>
-                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Crush</h4>
-                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Separating skin & juice.</p>
-                 </div>
+              <div className="flex flex-col items-center text-center">
+                 <span className="text-[#C8A24A] text-lg mb-1">🍇</span>
+                 <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Crush</h4>
+                 <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Separating skin & juice.</p>
               </div>
-              <div className="flex gap-3">
-                 <span className="text-[#C8A24A] mt-0.5">🧪</span>
-                 <div>
-                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Ferment</h4>
-                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Cultivating yeasts & body.</p>
-                 </div>
+              <div className="flex flex-col items-center text-center">
+                 <span className="text-[#C8A24A] text-lg mb-1">🧪</span>
+                 <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Ferment</h4>
+                 <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Cultivating yeasts & body.</p>
               </div>
-              <div className="flex gap-3">
-                 <span className="text-[#C8A24A] mt-0.5">🍾</span>
-                 <div>
-                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Bottle</h4>
-                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Maturing in select oak.</p>
-                 </div>
+              <div className="flex flex-col items-center text-center">
+                 <span className="text-[#C8A24A] text-lg mb-1">🍾</span>
+                 <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Bottle</h4>
+                 <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Maturing in select oak.</p>
               </div>
            </div>
         </motion.div>
@@ -365,7 +345,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       {/* Information Panel */}
       <div className="mt-8 bg-[#0A0A0A] border border-[#C8A24A]/30 p-5 rounded-xl w-full shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
         <h3 className="text-[10px] tracking-[0.2em] uppercase font-mono text-[#C8A24A] mb-3 text-center font-bold">
-          Why Afrisommelier?
+          Why Enoviq?
         </h3>
         <ul className="space-y-2.5 text-xs text-[#F2E7D5]/80 font-serif leading-relaxed">
           <li className="flex gap-3">
@@ -509,7 +489,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       <div className="w-14 h-14 rounded-full bg-gold-500/10 border border-gold-500/30 flex items-center justify-center mx-auto mb-3 shadow-[0_0_25px_rgba(198,169,107,0.1)]">
         <Sparkles className="w-6 h-6 text-gold-400 animate-pulse" />
       </div>
-      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage IV: Meet Your AfriSommelier</h2>
+      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage IV: Meet Enoviq</h2>
       <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">Refined, warm, deeply knowledgeable.</p>
       
       <div className="bg-glass border border-glass-border rounded-xl p-3 space-y-3 text-left">
@@ -705,8 +685,12 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       )}
 
       {isLoginOnly && (
-        <button className="mt-8 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/50 hover:text-[#C8A24A] transition-colors border-b border-transparent hover:border-[#C8A24A] pb-1">
-          Don't have an account? <span className="text-[#C8A24A] font-bold">Create Your Tasting DNA</span>
+        <button 
+          onClick={() => { setIsLoginOnly(false); setIsLogin(false); }}
+          className="mt-6 px-6 py-3 w-full bg-[#C8A24A]/10 hover:bg-[#C8A24A]/25 border border-[#C8A24A]/30 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest text-[#C8A24A] hover:text-[#F2E7D5] transition-all duration-300 shadow-[0_4px_15px_rgba(200,162,74,0.1)] flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] group"
+        >
+          <UserPlus className="w-3.5 h-3.5 text-[#C8A24A] group-hover:text-[#F2E7D5] transition-colors" />
+          Create Your Tasting DNA
         </button>
       )}
     </div>
@@ -721,7 +705,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center h-full">
         <div className="text-[10px] uppercase tracking-widest font-mono text-[#F2E7D5]/60 mb-10 flex items-center gap-2">
           <div className="w-8 h-px bg-[#C8A24A]/40"></div>
-          Afrisommelier • AI Sommelier
+          Enoviq • AI Sommelier
           <div className="w-8 h-px bg-[#C8A24A]/40"></div>
         </div>
 
@@ -733,7 +717,46 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         >
            <div className="absolute inset-2 border border-[#C8A24A]/30 rounded-full border-dashed animate-[spin_60s_linear_infinite]"></div>
            <div className="absolute inset-4 border border-[#C8A24A]/40 rounded-full flex items-center justify-center">
-              <Compass className="w-10 h-10 text-[#C8A24A] absolute" />
+              <svg 
+                viewBox="0 0 64 64" 
+                className="w-14 h-14 text-[#C8A24A] absolute" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                {/* Elegant Slanted Wine Bottle on the right */}
+                <path 
+                  d="M 44,12 L 54,22 C 55,23 55,25 54,26 L 38,42 C 37,43 35,43 34,42 L 30,38 C 29,37 29,35 30,34 L 41,18 C 41,17 40,15 41,14 L 42,11 L 44,12 Z" 
+                  stroke="#C8A24A" 
+                  fill="rgba(200, 162, 74, 0.15)" 
+                />
+                <path d="M 32,38 L 24,46" stroke="#C8A24A" strokeWidth="2" />
+                <path d="M 22,44 Q 21,45 23,47" stroke="#C8A24A" strokeWidth="2.5" />
+                
+                {/* Sparkling Crimson Droplet */}
+                <path 
+                  d="M 19,50 C 19,50 18.5,53 20,53 C 21.5,53 21,50 21,50 Z" 
+                  fill="#ef4444" 
+                  stroke="#ef4444" 
+                  strokeWidth="0.8" 
+                  className="animate-bounce" 
+                />
+                
+                {/* Elegant Wine Glass on bottom-left */}
+                <path 
+                  d="M 12,40 C 12,48 24,48 24,40" 
+                  stroke="#C8A24A" 
+                  fill="rgba(200, 162, 74, 0.05)" 
+                />
+                {/* Liquid Level color inside the glass */}
+                <path d="M 13.5,42.5 C 15.5,45 20.5,45 22.5,42.5" stroke="#ef4444" strokeWidth="1.2" />
+                {/* Glass Stem */}
+                <line x1="18" y1="48" x2="18" y2="55" stroke="#C8A24A" />
+                {/* Base of Glass */}
+                <line x1="13" y1="55" x2="23" y2="55" stroke="#C8A24A" strokeWidth="1.5" />
+              </svg>
            </div>
            <span className="text-[9px] text-[#C8A24A] font-bold tracking-widest uppercase relative z-20 mt-8 mb-1 bg-[#050505] px-1">Passport</span>
            
@@ -805,16 +828,12 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         <motion.button
           initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }}
           onClick={handleNextClick}
-          className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold text-sm hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_8px_30px_rgba(200,162,74,0.3)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2 mb-4"
+          className="mx-auto px-4 py-1.5 rounded bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-bold text-[10px] uppercase tracking-wider hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_4px_15px_rgba(200,162,74,0.25)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-1 mb-24"
         >
           Enter Your Cellar
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </motion.button>
-        
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex justify-center gap-4 w-full opacity-50 mb-4">
-           <div className="h-8 w-24 border border-white/20 bg-white/5 rounded overflow-hidden flex items-center justify-center text-[8px] text-white uppercase tracking-widest font-mono">App Store</div>
-           <div className="h-8 w-24 border border-white/20 bg-white/5 rounded overflow-hidden flex items-center justify-center text-[8px] text-white uppercase tracking-widest font-mono">Google Play</div>
-        </motion.div>
+
       </div>
     </div>
   );
@@ -863,7 +882,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         <div className="w-full max-w-md px-6 z-20 mt-6 md:mt-8">
           <div className="mb-2 text-center">
             <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-[#C8A24A] font-bold">
-              {step === 7 && isLoginOnly ? 'Afrisommelier Estate' : 'Winemaking Stage'}
+              {step === 7 && isLoginOnly ? 'Enoviq Estate' : 'Winemaking Stage'}
             </span>
           </div>
           
@@ -950,7 +969,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           </button>
           
           <div className="mt-8 flex flex-col items-center pb-2 opacity-50 text-center">
-             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1 font-bold">Afrisommelier Estate</span>
+             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1 font-bold">Enoviq Estate</span>
              <span className="text-[9px] font-serif italic text-white/50">"Discover Africa's finest terroir, one sip at a time."</span>
           </div>
         </div>
@@ -958,12 +977,8 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       
       {step === 7 && isLoginOnly && (
         <div className="w-full max-w-md px-6 pb-8 z-20 flex flex-col items-center mt-auto">
-          <div className="flex justify-center gap-3 w-full opacity-60 mb-8 mt-6">
-             <div className="h-10 w-32 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center text-[10px] text-[#F2E7D5] uppercase tracking-widest font-mono hover:bg-white/10 transition-colors cursor-pointer">App Store</div>
-             <div className="h-10 w-32 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center text-[10px] text-[#F2E7D5] uppercase tracking-widest font-mono hover:bg-white/10 transition-colors cursor-pointer">Google Play</div>
-          </div>
-          <div className="flex flex-col items-center pb-2 text-center opacity-70">
-             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1.5 font-bold">Afrisommelier Estate</span>
+          <div className="flex flex-col items-center pb-2 text-center opacity-70 mt-6">
+             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1.5 font-bold">Enoviq Estate</span>
              <span className="text-[10px] font-serif italic text-[#F2E7D5]/70">Africa's AI-Powered Sommelier Experience</span>
           </div>
         </div>

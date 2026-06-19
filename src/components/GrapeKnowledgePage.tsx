@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, BookOpen, Flame, Compass, Award, TrendingUp, 
   MessageSquare, Plus, Sparkles, Utensils, Thermometer, MapPin, 
-  Bookmark, Dna, Send, Check, Loader2, Info
+  Bookmark, Dna, Send, Check, Loader2, Info, Heart
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { callOpenRouter } from '../services/openRouterService';
@@ -746,19 +746,19 @@ export default function GrapeKnowledgePage({ slug, onBack, onSelectWine }: Props
           </div>
         </div>
 
-        {/* Interactive Chat: Ask Sommelier AI */}
+        {/* Interactive Chat: Ask Cupido AI */}
         <div className="glass-panel rounded-2xl overflow-hidden border border-gold-500/10 bg-wine-950/20" id="ask-sommelier-ai-grape">
           <div className="p-5 border-b border-white/5 bg-gradient-to-r from-wine-950 via-wine-900/60 to-wine-950 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 border border-gold-500/30 rounded-full flex items-center justify-center bg-black/45">
-                <Sparkles className="w-4.5 h-4.5 text-gold-400 animate-pulse" />
+                <Heart className="w-4.5 h-4.5 text-pink-400 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-serif font-bold text-white">Ask Sommelier AI about {grape.name}</h3>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Expert South African Palate Mapping</p>
+                <h3 className="text-sm font-serif font-bold text-white">Ask Cupido AI about {grape.name}</h3>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Romantic coupling & pairing expert</p>
               </div>
             </div>
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
+            <div className="w-2 h-2 rounded-full bg-pink-500 animate-ping" />
           </div>
 
           {/* Interactive Chat History and dynamic AI response streaming */}
@@ -850,9 +850,7 @@ export default function GrapeKnowledgePage({ slug, onBack, onSelectWine }: Props
 
         {/* Dynamic & Secure Virtual Bottle Cellar Insertion Workspace */}
         <div className="glass-panel p-6 rounded-2xl border border-gold-500/30 bg-gradient-to-br from-wine-950 to-wine-900/30 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 bg-gold-500/10 text-gold-500 text-[10px] font-mono rounded-bl-xl border-l border-b border-gold-500/20">
-            SECURE VAULT WORKSPACE
-          </div>
+
           <h3 className="text-xl font-serif font-bold text-white mb-2">🎁 Cellar Your Own Virtual {grape.name}</h3>
           <p className="text-xs text-gray-400 max-w-md mx-auto mb-6 font-serif">
             Instantly formulate and register an custom artisanal {grape.name} bottle into your digital cellar ledger.

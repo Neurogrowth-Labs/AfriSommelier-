@@ -306,7 +306,7 @@ export default function AddWineCollectionScreen({ onBack, onNavigate, onSelectWi
                 id="ai_collector_send"
                 onClick={askAiAssistant}
                 disabled={chatLoading}
-                className="px-5 py-3 bg-gold-500 text-wine-950 rounded-xl font-serif font-bold text-sm hover:scale-95 transition-transform disabled:opacity-50"
+                className="px-2.5 py-1 bg-gold-500 text-wine-950 rounded font-mono font-bold text-[9px] uppercase tracking-wider hover:scale-[0.97] transition-all disabled:opacity-55 shrink-0 self-center"
               >
                 {chatLoading ? 'Thinking...' : 'Consult'}
               </button>

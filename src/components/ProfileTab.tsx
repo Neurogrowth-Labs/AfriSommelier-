@@ -10,7 +10,7 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
     uniqueWines: 0,
     topVarietal: 'Pinotage',
     topRegion: 'Stellenbosch',
-    memberTier: 'AfriSommelier Initiate'
+    memberTier: 'Enoviq Initiate'
   });
   const [loading, setLoading] = useState(true);
   
@@ -77,7 +77,7 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
           const topVarietal = Object.keys(varietalCounts).sort((a,b) => varietalCounts[b] - varietalCounts[a])[0] || 'Pinotage';
 
           // Determine tier
-          let tier = 'AfriSommelier Initiate';
+          let tier = 'Enoviq Initiate';
           if (snapshot && snapshot.length >= 10) tier = 'Estate Explorer';
           if (snapshot && snapshot.length >= 30) tier = 'Terroir Master';
           if (snapshot && snapshot.length >= 50) tier = 'Grand Sommelier';

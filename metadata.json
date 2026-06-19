@@ -1,8 +1,10 @@
 {
-  "name": "AfriSommelier AI",
+  "name": "Enoviq",
   "description": "An African wine discovery engine and AI Sommelier featuring local food pairing, taste DNA profiling, and smart cellar management.",
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

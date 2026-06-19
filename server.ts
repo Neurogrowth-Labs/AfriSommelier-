@@ -18,7 +18,7 @@ async function startServer() {
       if (openRouterKey) {
         const apiPayload = {
           ...payload,
-          model: payload.model || "google/gemini-2.5-flash"
+          model: payload.model || "google/gemini-3.5-flash"
         };
         // Use OpenRouter if key is available
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -47,7 +47,14 @@ async function startServer() {
       }
 
       // Use the imported GoogleGenAI SDK
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const ai = new GoogleGenAI({ 
+        apiKey: geminiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
 
       // Convert OpenAI-style messages to Gemini style
       const messages = payload.messages || [];
@@ -95,7 +102,7 @@ async function startServer() {
       }
 
       // Route based on requested model family if specified, otherwise default to flash
-      const model = payload.model && payload.model.includes('opus') ? 'gemini-3.1-pro-preview' : 'gemini-2.5-flash';
+      const model = payload.model && payload.model.includes('opus') ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
 
       const response = await ai.models.generateContent({
         model,

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, Heart, Share, Star, Leaf, Activity, Droplet, Edit3, Check, ShoppingCart, Music, Image as ImageIcon, Loader2, Tag } from 'lucide-react';
 import { supabase } from '../supabase';
-import { GoogleGenAI, Modality } from '@google/genai';
 import LogGlassModal from './LogGlassModal';
 
 export default function WineDetail({ wine, onClose }: { wine: any, onClose: () => void }) {
@@ -172,7 +171,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
 
   const handleShare = async () => {
     const shareData = {
-      title: `Discover ${wine.name} on AfriSommelier`,
+      title: `Discover ${wine.name} on Enoviq`,
       text: `Check out this amazing wine: ${wine.name} from ${wine.region || 'South Africa'}.`,
       url: `${window.location.origin}/share?wine_id=${wine.id || encodeURIComponent(wine.name)}`
     };

@@ -12,38 +12,27 @@ export default function SommelierChat({ onClose, initialMessage }: { onClose: ()
     if (initialMessage && initialMessage.role === 'model') {
       return [{ role: 'model', text: initialMessage.text }];
     }
-    return [{ role: 'model', text: 'Good evening. I am your AI Sommelier. What are we drinking tonight?' }];
+    return [{ 
+      role: 'model', 
+      text: "Greetings, lovers. I am Cupido AI, your romantic master coupling expert. Tell me about your dream date night—be it under the starry Stellenbosch skies, a cozy oceanside fireside, or a private candlelit estate room. I will architect the perfect romantic date complete with South African wine pairings, sensory settings, and musical vibes. 💖"
+    }];
   });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isDeepAnalysis, setIsDeepAnalysis] = useState(false);
-  const [isCupidoMode, setIsCupidoMode] = useState(false);
+  const [isCupidoMode, setIsCupidoMode] = useState(true);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  
+  // High-fidelity romantic date customizer states
+  const [dateVibe, setDateVibe] = useState('Sunset Picnic');
+  const [musicVibe, setMusicVibe] = useState('Smooth Jazz');
+  const [intensity, setIntensity] = useState('Romantic & Poetic');
+  const [priceTier, setPriceTier] = useState('Reserve / Premium');
+  const [showCustomizer, setShowCustomizer] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-
-  const handleToggleCupidoMode = () => {
-    const nextMode = !isCupidoMode;
-    setIsCupidoMode(nextMode);
-    if (nextMode) {
-      setMessages(prev => [
-        ...prev, 
-        { 
-          role: 'model', 
-          text: "Greetings, lovers. I am Cupido AI, your romantic master coupling expert. Tell me about your dream date night—be it under the starry Stellenbosch skies, a cozy oceanside fireside, or a private candlelit estate room. I will architect the perfect romantic date complete with South African wine pairings, sensory settings, and musical vibes. 💖" 
-        }
-      ]);
-    } else {
-      setMessages(prev => [
-        ...prev, 
-        { 
-          role: 'model', 
-          text: "Returned to Master Sommelier AI mode. What classical wine pairings or cellar query can I assist you with?" 
-        }
-      ]);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,15 +120,21 @@ export default function SommelierChat({ onClose, initialMessage }: { onClose: ()
         { role: 'user', content: userMsg }
       ];
 
-      const systemInstruction = isCupidoMode
-        ? `You are Cupido AI, a highly passionate, poetic, and world-class AI Romantic Date Expert and master coupling agent specializing in romantic South African date planning and wine parings.
+      const systemInstruction = `You are Cupido AI, a highly passionate, poetic, and world-class AI Romantic Date Expert and master coupling agent specializing in romantic South African date planning and wine pairings.
 Your tone is incredibly warm, charming, intimate, artistic, and expert.
-When the user asks for date ideas, planning help, or romantic suggestions, design an beautifully vivid, step-by-step romantic schedule (referencing gorgeous South African locations like beaches in Cape Town, twilight sunset picnics in Franschhoek, firesides in Stellenbosch, or mountain walks).
-Integrate candlelit menu hints, sensory mood lighting ideas, atmospheric details, music genre tips, and recommend at least one spectacular South African wine pairing (such as MCC/Cap Classique sparkling wines, noble late harvest nectars, robust Pinotages, or fine white blends) that adds spark to their dynamic.
+You are currently personalized and customized with these specific preferences chosen by the user:
+- Current Date Atmosphere/Vibe: ${dateVibe}
+- Current Soundscape/Music: ${musicVibe}
+- Tone Intensity level: ${intensity}
+- South African Wine Tier: ${priceTier}
+
+When the user asks for date ideas, planning help, or romantic suggestions, design a beautifully vivid, step-by-step romantic schedule reflecting the specified atmosphere '${dateVibe}' and including locations (like Stellenbosch, Franschhoek, Constantia, Cape Town beaches, etc.).
+Integrate candlelit menu hints, sensory mood lighting ideas, atmospheric details, music genre tips matching '${musicVibe}', and recommend at least one spectacular South African wine pairing from the '${priceTier}' tier that adds spark to their dynamic.
+Include rich, sensory vocabulary matching the tone '${intensity}'.
 You must return your response strictly as a JSON object responding with valid JSON only.
 Structure:
 {
-  "message": "A poetically written, evocative romantic romantic date curation from Cupido AI. Emphasize candlelit mood setting, soundscapes, and sensory chemistry.",
+  "message": "A poetically written, evocative romantic date curation from Cupido AI. Emphasize candlelit mood setting, soundscapes, and sensory chemistry.",
   "wines": [
     {
       "name": "string",
@@ -149,25 +144,7 @@ Structure:
       "reason": "Why this South African selection is perfect for spark-filled dates."
     }
   ]
-}`
-        : `You are a Master Sommelier specializing in South African wines. Keep your answers concise, elegant, and helpful. You must return your response strictly as a JSON object responding with valid JSON only.
-Structure:
-{
-  "message": "A conversational, elegant response from the sommelier.",
-  "wines": [
-    {
-      "name": "string",
-      "vintage": "string",
-      "region": "string",
-      "price": "string",
-      "reason": "Why this wine is recommended."
-    }
-  ]
-}
-Here is specific knowledge about African wine farms and basics:
-${WINE_FARMS_KNOWLEDGE.substring(0, 500)}...
-${WINE_COURSE_KNOWLEDGE.substring(0, 500)}...
-${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
+}`;
 
       const responseText = await callOpenRouter({
         messages: openRouterMessages,
@@ -212,23 +189,19 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
-      className={`fixed inset-0 z-50 flex flex-col items-center backdrop-blur-xl transition-colors duration-500 ${isCupidoMode ? 'bg-[#240A15]/96 shadow-[inset_0_0_100px_rgba(219,39,119,0.15)]' : 'bg-[#050505]/98'}`}
+      className="fixed inset-0 z-50 flex flex-col items-center backdrop-blur-xl transition-colors duration-500 bg-[#240A15]/96 shadow-[inset_0_0_100px_rgba(219,39,119,0.15)]"
     >
      <div className="flex flex-col w-full h-full max-w-4xl relative">
       {/* Header */}
-      <div className={`p-6 border-b border-[#C8A24A]/20 shrink-0 transition-colors duration-500 flex justify-between items-center ${isCupidoMode ? 'bg-pink-950/20' : 'bg-transparent'}`}>
+      <div className="p-6 border-b border-[#C8A24A]/20 shrink-0 transition-colors duration-500 flex justify-between items-center bg-pink-950/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#12100C] border border-[#C8A24A]/30 flex items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(200,162,74,0.1)]">
             <div className="absolute inset-0 bg-[#C8A24A]/10 blur-sm animate-pulse"></div>
-            {isCupidoMode ? (
-              <Heart size={18} className="text-pink-400 relative z-10 animate-bounce" />
-            ) : (
-              <Sparkles size={18} className="text-[#C8A24A] relative z-10" />
-            )}
+            <Heart size={18} className="text-pink-400 relative z-10 animate-bounce" />
           </div>
           <div>
             <h2 className="font-serif text-xl font-normal text-[#F2E7D5] mb-0.5">
-              {isCupidoMode ? 'Cupido AI' : 'Sommelier AI'}
+              Cupido AI
             </h2>
             <div className="flex flex-wrap items-center gap-2 mt-0.5">
               <button 
@@ -240,11 +213,11 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
               </button>
               
               <button 
-                onClick={handleToggleCupidoMode}
-                className={`flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full border transition-all active:scale-[0.97] ${isCupidoMode ? 'bg-pink-500 text-white border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.45)]' : 'bg-pink-950/40 border-pink-700/60 text-pink-300 hover:bg-pink-900/50'}`}
+                onClick={() => setShowCustomizer(!showCustomizer)}
+                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full border transition-all active:scale-[0.97] ${showCustomizer ? 'bg-pink-600 text-white border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-pink-950/40 border-pink-700/60 text-pink-300 hover:bg-pink-900/50'}`}
               >
-                <Heart size={10} className={`${isCupidoMode ? 'fill-white animate-pulse' : ''}`} />
-                {isCupidoMode ? 'Cupido AI Active ❤️' : 'Activate Cupido AI'}
+                <Heart size={10} className={`${showCustomizer ? 'fill-white animate-pulse' : ''}`} />
+                {showCustomizer ? 'Close Customizer 💖' : 'Open Customizer 💖'}
               </button>
             </div>
           </div>
@@ -253,6 +226,95 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
           <X size={24} />
         </button>
       </div>
+
+      {/* Personalized Romantic Customization Board */}
+      <AnimatePresence>
+        {showCustomizer && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-6 py-4 bg-[#2D0D1B] border-b border-[#C8A24A]/20 shrink-0 select-none overflow-y-auto max-h-[220px]"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+              <div>
+                <label className="text-[9px] uppercase tracking-widest font-mono font-bold text-pink-400 mb-1.5 block">1. Date Atmosphere</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Sunset Picnic', 'Candlelit Cellar', 'Oceanside Walk', 'Cozy Fireside'].map(v => (
+                    <button 
+                      key={v}
+                      onClick={() => setDateVibe(v)}
+                      className={`text-[10px] font-sans px-2.5 py-1 rounded-md border transition-all ${dateVibe === v ? 'bg-pink-500/20 border-pink-500 text-pink-200 font-bold' : 'bg-black/40 border-pink-950/40 text-pink-400/70 hover:text-pink-300 hover:bg-black/60'}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-widest font-mono font-bold text-pink-400 mb-1.5 block">2. Atmospheric Soundscape</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Smooth Jazz', 'Acoustic', 'Lofi Beats', 'Classical Piano'].map(m => (
+                    <button 
+                      key={m}
+                      onClick={() => setMusicVibe(m)}
+                      className={`text-[10px] font-sans px-2.5 py-1 rounded-md border transition-all ${musicVibe === m ? 'bg-pink-500/20 border-pink-500 text-pink-200 font-bold' : 'bg-black/40 border-pink-950/40 text-pink-400/70 hover:text-pink-300 hover:bg-black/60'}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-widest font-mono font-bold text-pink-400 mb-1.5 block">3. Cupid Persona / Intensity</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Romantic & Poetic', 'Flirty & Playful', 'Intimate & Deep'].map(t => (
+                    <button 
+                      key={t}
+                      onClick={() => setIntensity(t)}
+                      className={`text-[10px] font-sans px-2.5 py-1 rounded-md border transition-all ${intensity === t ? 'bg-pink-500/20 border-pink-500 text-pink-200 font-bold' : 'bg-black/40 border-pink-950/40 text-pink-400/70 hover:text-pink-300 hover:bg-black/60'}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-widest font-mono font-bold text-pink-400 mb-1.5 block">4. Wine Selection Tier</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Boutique / Daily', 'Reserve / Premium', 'Collector / Rare'].map(st => (
+                    <button 
+                      key={st}
+                      onClick={() => setPriceTier(st)}
+                      className={`text-[10px] font-sans px-2.5 py-1 rounded-md border transition-all ${priceTier === st ? 'bg-pink-500/20 border-pink-500 text-pink-200 font-bold' : 'bg-black/40 border-pink-950/40 text-pink-400/70 hover:text-pink-300 hover:bg-black/60'}`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-3 text-center border-t border-pink-950/40 pt-2.5 flex items-center justify-between text-[11px] font-serif text-pink-300/80 italic">
+              <span>💖 Ambient: Prepared for a <span className="text-pink-450 font-bold font-sans not-italic">{intensity}</span> mood setting.</span>
+              <button 
+                onClick={() => {
+                  setMessages(prev => [...prev, {
+                    role: 'model',
+                    text: `Cupido parameters updated! I am now aligned to plan a beautiful ${dateVibe} pairing with an atmospheric backdrop of ${musicVibe}. I will select ${priceTier} South African wines to matches. Describe your exact date query!`
+                  }]);
+                }}
+                className="text-[9px] uppercase font-mono tracking-wider bg-pink-500 text-white px-3 py-1 rounded hover:bg-pink-400 font-bold transition-all shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+              >
+                Apply Setting ✨
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
@@ -315,27 +377,17 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
       </div>
 
       {/* Input Area */}
-      <div className="p-6 pb-10">
+      <div className="p-6 pb-10 font-sans">
         <div className="flex gap-2.5 overflow-x-auto custom-scrollbar mb-4 pb-2">
-          {isCupidoMode ? (
-            <>
-              <button onClick={() => setInput('Plan a romantic sunset beach picnic with Cap Classique sparkle 🥂')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Sunset picnic 🥂</button>
-              <button onClick={() => setInput('Design a luxurious candlelit dinner with a premium Stellenbosch Pinotage pairing 🕯️')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Candlelit dinner 🕯️</button>
-              <button onClick={() => setInput('Cozy fireside date plan under the stars with a sweet Cape late harvest wine 🌌')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Fireside date 🌌</button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setInput('Wine for braai')} className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest font-bold text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/50 transition-all">Wine for braai</button>
-              <button onClick={() => setInput('Under R200')} className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest font-bold text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/50 transition-all">Under R200</button>
-              <button onClick={() => setInput('Bold red')} className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest font-bold text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/50 transition-all">Bold red</button>
-            </>
-          )}
+          <button onClick={() => setInput('Plan a romantic sunset beach picnic with Cap Classique sparkle 🥂')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Sunset picnic 🥂</button>
+          <button onClick={() => setInput('Design a luxurious candlelit dinner with a premium Stellenbosch Pinotage pairing 🕯️')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Candlelit dinner 🕯️</button>
+          <button onClick={() => setInput('Cozy fireside date plan under the stars with a sweet Cape late harvest wine 🌌')} className="px-5 py-2.5 rounded-full border border-pink-500/30 bg-pink-950/20 text-[10px] uppercase font-mono tracking-widest font-bold whitespace-nowrap hover:bg-pink-900/40 text-pink-200 transition-all">Fireside date 🌌</button>
         </div>
         
         <div className="relative flex items-center">
           <button 
             onClick={toggleListening}
-            className={`absolute left-4 transition-colors ${isListening ? 'text-pink-500 animate-pulse' : 'text-[#C8A24A] hover:text-[#dabb70]'}`}
+            className={`absolute left-4 transition-colors ${isListening ? 'text-pink-500 animate-pulse' : 'text-pink-400 hover:text-pink-300'}`}
           >
             <Mic size={20} />
           </button>
@@ -344,8 +396,8 @@ ${WINE_WISE_KNOWLEDGE.substring(0, 500)}...`;
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isListening ? "Listening..." : isCupidoMode ? "Describe your dream date setup to Cupido AI..." : "Ask your sommelier..."} 
-            className="w-full bg-[#0A0A0A]/90 border border-[#C8A24A]/30 rounded-full py-4 pl-12 pr-14 text-sm text-[#F2E7D5] placeholder-[#F2E7D5]/40 focus:outline-none focus:border-[#C8A24A]/60 transition-colors shadow-[0_8px_30px_rgba(0,0,0,0.5)] font-serif italic"
+            placeholder={isListening ? "Listening..." : "Describe your dream date setup to Cupido AI..."} 
+            className="w-full bg-[#0A0A0A]/90 border border-pink-500/30 rounded-full py-4 pl-12 pr-14 text-sm text-[#F2E7D5] placeholder-[#F2E7D5]/40 focus:outline-none focus:border-pink-500/50 transition-colors shadow-[0_8px_30px_rgba(0,0,0,0.5)] font-serif italic"
           />
           <button 
             onClick={() => handleSend()}

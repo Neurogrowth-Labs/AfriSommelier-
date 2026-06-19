@@ -113,27 +113,7 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
         </div>
       </div>
 
-      {/* Quick Filter Chips */}
-      <div className="flex overflow-x-auto custom-scrollbar px-6 gap-3 mb-8 pb-2">
-        <button 
-          onClick={() => { setFilterPrice('Under R150'); handleSearch(undefined, { price: 'Under R150' }); }}
-          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
-        >
-          Under R200
-        </button>
-        <button 
-          onClick={() => { setFilterPrice('Over R600'); handleSearch(undefined, { price: 'Over R600' }); }}
-          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
-        >
-          Luxury
-        </button>
-        <button 
-          onClick={() => { setFilterRegion('Constantia'); handleSearch(undefined, { region: 'Constantia' }); }}
-          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
-        >
-          Cape Town Nearby
-        </button>
-      </div>
+
 
       {/* Filters Panel */}
       <AnimatePresence>

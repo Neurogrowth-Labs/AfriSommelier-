@@ -269,7 +269,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       const { error } = await supabase.from('wines').insert(newWine);
       if (!error) {
         setWinesList(prev => [newWine, ...prev]);
-        triggerToast("Successfully advertised new wine to AfriSommelier Catalog.");
+        triggerToast("Successfully advertised new wine to Enoviq Catalog.");
       } else {
         // Mock fallback
         setWinesList(prev => [newWine, ...prev]);
