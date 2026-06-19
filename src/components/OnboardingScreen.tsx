@@ -215,93 +215,98 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
     <motion.div 
       key="step-0"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center"
+      className="absolute inset-0 flex flex-col items-center justify-between pt-24 pb-12 px-6 z-20 text-center bg-[#050505]"
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0B0B0C] to-[#09090A] z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[500px] md:h-[500px] bg-gold-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Subtle geometric lines reflecting the heritage theme */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#C8A24A 1px, transparent 1px), linear-gradient(90deg, #C8A24A 1px, transparent 1px)', backgroundSize: '40px 40px', backgroundPosition: 'center' }}></div>
       </div>
       
-      <div className="relative z-10 w-full max-w-md px-1 select-none">
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center select-none flex-1">
         {/* Fine gold border badge */}
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gold-500/30 bg-gold-500/10 mb-4 backdrop-blur-md"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#C8A24A]/30 bg-[#12100C] mb-8 shadow-[0_0_15px_rgba(200,162,74,0.15)]"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse" />
-          <span className="text-[9px] tracking-[0.2em] font-sans text-gold-400 font-semibold uppercase">AfriSommelier Estate</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#C8A24A] animate-pulse" />
+          <span className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] font-bold uppercase">AfriSommelier Estate</span>
         </motion.div>
 
         {/* Elegant wine glasses visual descriptor */}
         <motion.h1 
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-2xl md:text-3.5xl font-serif font-bold text-ivory mb-2 leading-tight tracking-tight px-1"
+          className="text-4xl font-serif font-normal text-[#F2E7D5] mb-4 leading-[1.1] tracking-tight px-1"
         >
-          Curated <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-500 to-gold-300">African Terroir</span>
+          Curated <br/>
+          <span className="text-[#C8A24A] font-bold italic">African Terroir</span>
         </motion.h1>
         
         <motion.p 
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-          className="text-gray-400 text-xs md:text-sm mb-5 font-serif leading-relaxed italic max-w-sm mx-auto"
+          className="text-[#F2E7D5]/70 text-[13px] mb-8 font-serif leading-relaxed italic max-w-[280px] mx-auto"
         >
           "An AI-designed sommelier mapping, unlocking winemaking heritage, perfect pairings and investment-grade cellar yields."
         </motion.p>
 
-        {/* Elegant 4 winemaking stages highlight card list */}
+        {/* Elegant 4 winemaking stages highlight list */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          className="bg-wine-950/60 border border-white/5 p-4 rounded-xl mb-6 text-left space-y-3"
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.5 }}
+           className="w-full bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/20 p-5 rounded-xl text-left space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] mb-10"
         >
-          <div className="text-[10px] font-mono tracking-[0.15em] text-gold-450 uppercase border-b border-white/5 pb-1.5 mb-1 text-center font-bold">
-            The 4 Winemaking Stages
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="flex gap-2 items-start">
-              <span className="text-sm">🌾</span>
-              <div>
-                <h4 className="text-[11px] font-bold text-ivory">1. Harvest & Select</h4>
-                <p className="text-[9px] text-gray-400">Handpicking peak African fruit.</p>
+           <h3 className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] text-center font-bold uppercase mb-2">The 4 Winemaking Stages</h3>
+           <div className="grid grid-cols-2 gap-4">
+              <div className="flex gap-3">
+                 <span className="text-[#C8A24A] mt-0.5">🌾</span>
+                 <div>
+                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Harvest</h4>
+                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Handpicking peak African fruit.</p>
+                 </div>
               </div>
-            </div>
-            <div className="flex gap-2 items-start">
-              <span className="text-sm">🍇</span>
-              <div>
-                <h4 className="text-[11px] font-bold text-ivory">2. Crush & Press</h4>
-                <p className="text-[9px] text-gray-400">Separating skin & free-run juice.</p>
+              <div className="flex gap-3">
+                 <span className="text-[#C8A24A] mt-0.5">🍇</span>
+                 <div>
+                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Crush</h4>
+                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Separating skin & juice.</p>
+                 </div>
               </div>
-            </div>
-            <div className="flex gap-2 items-start">
-              <span className="text-sm">🧪</span>
-              <div>
-                <h4 className="text-[11px] font-bold text-ivory">3. Fermentation</h4>
-                <p className="text-[9px] text-gray-400">Cultivating yeasts and body structure.</p>
+              <div className="flex gap-3">
+                 <span className="text-[#C8A24A] mt-0.5">🧪</span>
+                 <div>
+                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Ferment</h4>
+                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Cultivating yeasts & body.</p>
+                 </div>
               </div>
-            </div>
-            <div className="flex gap-2 items-start">
-              <span className="text-sm">🍾</span>
-              <div>
-                <h4 className="text-[11px] font-bold text-ivory">4. Aging & Bottle</h4>
-                <p className="text-[9px] text-gray-400">Maturing in select oak vaults.</p>
+              <div className="flex gap-3">
+                 <span className="text-[#C8A24A] mt-0.5">🍾</span>
+                 <div>
+                    <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Bottle</h4>
+                    <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Maturing in select oak.</p>
+                 </div>
               </div>
-            </div>
-          </div>
+           </div>
         </motion.div>
+        
+        <div className="flex-1"></div>
 
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-3.5">
-          <button 
-            onClick={proceed}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-gold-600 to-gold-400 text-wine-950 font-serif font-bold text-base hover:from-gold-500 hover:to-gold-300 transition-all duration-350 shadow-[0_4px_22px_rgba(198,169,107,0.2)] active:scale-[0.99] tracking-wide"
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-4 w-full">
+             <button 
+             onClick={proceed}
+             className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold text-sm hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_8px_30px_rgba(200,162,74,0.3)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2 relative overflow-hidden animate-pulse-glow"
           >
-            Create Your Tasting DNA
+             <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+             Create Your Tasting DNA
+             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
+          
           <button 
-            onClick={() => { setIsLogin(true); setIsLoginOnly(true); setStep(7); }}
-            className="w-full py-1.5 text-[10px] tracking-widest uppercase font-mono text-gray-400 hover:text-gold-300 transition-colors"
+             onClick={() => { setIsLogin(true); setIsLoginOnly(true); setStep(7); }}
+             className="w-full text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/50 hover:text-[#C8A24A] transition-colors"
           >
-            Already registered? <span className="underline decoration-gold-500/40 hover:decoration-gold-500 underline-offset-4 font-bold">Log In</span>
+            Already registered? <span className="text-[#C8A24A] font-bold border-b border-[#C8A24A] pb-0.5">Log In</span>
           </button>
         </motion.div>
       </div>
@@ -309,27 +314,77 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderIdentity = () => (
-    <div className="w-full max-w-md">
-      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">Stage I: Your Wine Journey</h2>
-      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">How would you describe your relationship with wine?</p>
-      <div className="space-y-2">
-        {identities.map(i => (
+    <div className="w-full max-w-md flex flex-col items-center">
+      <h2 className="text-[26px] leading-[1.1] font-serif text-[#C8A24A] mb-1 text-center font-bold">
+        <span className="text-xl text-[#F2E7D5] font-normal block mb-1">Stage 1:</span>
+        Your Wine Journey
+      </h2>
+      <p className="text-[#F2E7D5]/70 text-sm font-serif italic mb-6 text-center max-w-[260px]">
+        "How would you describe your relationship with wine?"
+      </p>
+      
+      <div className="space-y-3 w-full">
+        {[
+          { id: 'explorer', label: 'Wine Explorer', desc: 'Discover varietals across the continent', icon: <Grape className="w-5 h-5" /> },
+          { id: 'dining', label: 'Fine Dining Enthusiast', desc: 'Pairing wines with exceptional cuisine', icon: <Utensils className="w-5 h-5" /> },
+          { id: 'investor', label: 'Investor / Collector', desc: 'Investment-grade cellar & yields', icon: <Briefcase className="w-5 h-5" /> },
+          { id: 'hospitality', label: 'Hospitality Professional', desc: 'Curate wine lists for guests', icon: <Hotel className="w-5 h-5" /> }
+        ].map(i => (
           <button
             key={i.id}
             onClick={() => { setAnswers({ ...answers, identity: i.id }); setTimeout(proceed, 400); }}
-            className={`w-full p-3 rounded-xl border flex items-center gap-3 transition-all duration-300 ${
+            className={`w-full p-4 rounded-xl border flex items-center gap-4 transition-all duration-300 group relative overflow-hidden ${
               answers.identity === i.id 
-                ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_15px_rgba(198,169,107,0.12)] scale-[1.01]' 
-                : 'bg-glass border-glass-border hover:bg-glass-hover hover:border-gold-500/20'
+                ? 'bg-[#12100C] border-[#C8A24A] shadow-[0_0_20px_rgba(200,162,74,0.15)]' 
+                : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#C8A24A]/40 hover:shadow-[0_0_15px_rgba(200,162,74,0.1)]'
             }`}
           >
-            <div className={`p-2 rounded-lg shrink-0 [&_svg]:w-4 [&_svg]:h-4 ${answers.identity === i.id ? 'bg-gold-500/20 text-gold-400' : 'bg-white/5 text-gray-300'}`}>
+            {/* Soft Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-r from-[#C8A24A]/0 via-[#C8A24A]/5 to-[#C8A24A]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none`} />
+            
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-300 ${
+              answers.identity === i.id ? 'bg-[#C8A24A]/10 border-[#C8A24A]/50 text-[#C8A24A]' : 'bg-black/40 border-white/10 text-[#F2E7D5]/60 group-hover:text-[#C8A24A]'
+            }`}>
               {i.icon}
             </div>
-            <span className="font-medium text-sm flex-1 text-left">{i.label}</span>
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+            
+            <div className="flex-1 text-left flex flex-col justify-center">
+              <span className={`font-serif text-[15px] font-semibold transition-colors duration-300 ${
+                answers.identity === i.id ? 'text-[#C8A24A]' : 'text-[#F2E7D5]'
+              }`}>{i.label}</span>
+              <span className="text-[11px] text-[#F2E7D5]/50 mt-0.5">{i.desc}</span>
+            </div>
+            
+            <ChevronRight className={`w-5 h-5 transition-transform duration-300 ${
+              answers.identity === i.id ? 'text-[#C8A24A] translate-x-1' : 'text-white/20 group-hover:text-[#C8A24A]/60'
+            }`} />
           </button>
         ))}
+      </div>
+
+      {/* Information Panel */}
+      <div className="mt-8 bg-[#0A0A0A] border border-[#C8A24A]/30 p-5 rounded-xl w-full shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+        <h3 className="text-[10px] tracking-[0.2em] uppercase font-mono text-[#C8A24A] mb-3 text-center font-bold">
+          Why Afrisommelier?
+        </h3>
+        <ul className="space-y-2.5 text-xs text-[#F2E7D5]/80 font-serif leading-relaxed">
+          <li className="flex gap-3">
+            <span className="text-[#C8A24A] mt-0.5 text-sm">•</span> 
+            <span>AI Terroir Mapping across 6 African countries</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="text-[#C8A24A] mt-0.5 text-sm">•</span> 
+            <span>Winemaking heritage & investment yield scoring</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="text-[#C8A24A] mt-0.5 text-sm">•</span> 
+            <span>Personalised pairings from your Tasting DNA</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="text-[#C8A24A] mt-0.5 text-sm">•</span> 
+            <span>Private cellar management & passport history</span>
+          </li>
+        </ul>
       </div>
     </div>
   );
@@ -511,29 +566,39 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   );
 
   const renderAuth = () => (
-    <div className="w-full max-w-md">
-      <h2 className="text-xl md:text-2xl font-serif text-ivory mb-1 text-center font-semibold">
-        {isLoginOnly ? 'Log In to Your Cellar' : 'Stage IV: Save Wine Passport'}
+    <div className="w-full max-w-md flex flex-col items-center">
+      <h2 className="text-3xl font-serif text-[#C8A24A] mb-1 text-center font-bold leading-tight">
+        <span className="text-xl text-[#F2E7D5] font-normal block mb-1">
+          {isLoginOnly ? 'Log In to' : 'Stage IV: Save'}
+        </span>
+        {isLoginOnly ? 'Your Cellar' : 'Wine Passport'}
       </h2>
-      <p className="text-gray-400 text-xs md:text-sm font-serif italic mb-4 text-center">
-        {isLoginOnly ? 'Welcome back to your curated experience.' : 'Save your custom Taste DNA profile.'}
+      <p className="text-[#F2E7D5]/70 text-sm font-serif italic mb-6 text-center">
+        {isLoginOnly ? '"Welcome back to your curated experience."' : '"Save your custom Taste DNA profile."'}
       </p>
       
-      <div className="bg-glass border border-glass-border rounded-2xl p-4 md:p-5 shadow-2xl relative overflow-hidden text-left">
+      <div className="w-full bg-[#0A0A0A]/80 backdrop-blur-xl border border-[#C8A24A]/20 rounded-2xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden text-left">
+        {/* Subtle Silhouette Background */}
+        <div className="absolute top-10 -right-10 w-40 h-64 border border-white/5 rounded-full mix-blend-overlay opacity-30 pointer-events-none transform rotate-12 flex justify-center pt-4">
+           <div className="w-12 h-40 border border-white/10 rounded-[4px_4px_24px_24px] mt-4 relative">
+             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-4 h-12 border border-white/10 rounded-t-sm"></div>
+           </div>
+        </div>
+
         {!isLoginOnly && (
-          <div className="flex mb-4 bg-black/40 rounded-xl p-1 relative z-10">
+          <div className="flex mb-6 bg-black rounded-lg p-1 relative z-10 border border-white/5">
             <button
               onClick={() => { setIsLogin(false); setAuthError(null); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
-                !isLogin ? 'bg-gold-500/20 text-gold-400 shadow-sm' : 'text-gray-400 hover:text-ivory'
+              className={`flex-1 py-2 text-[11px] uppercase tracking-wider font-semibold rounded-md transition-all duration-300 font-mono ${
+                !isLogin ? 'bg-[#C8A24A]/20 text-[#C8A24A]' : 'text-gray-500 hover:text-[#F2E7D5]'
               }`}
             >
               Create Account
             </button>
             <button
               onClick={() => { setIsLogin(true); setAuthError(null); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
-                isLogin ? 'bg-gold-500/20 text-gold-400 shadow-sm' : 'text-gray-400 hover:text-ivory'
+              className={`flex-1 py-2 text-[11px] uppercase tracking-wider font-semibold rounded-md transition-all duration-300 font-mono ${
+                isLogin ? 'bg-[#C8A24A]/20 text-[#C8A24A]' : 'text-gray-500 hover:text-[#F2E7D5]'
               }`}
             >
               Log In
@@ -541,29 +606,32 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           </div>
         )}
 
-        <form onSubmit={handleAuthSubmit} className="space-y-3">
+        <form onSubmit={handleAuthSubmit} className="space-y-4 relative z-10">
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-300 mb-1 ml-1 font-bold">Email Address</label>
+            <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-[#F2E7D5]/60 mb-2 font-bold">Email Address</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <Mail className="h-4 w-4 text-[#C8A24A]/70" />
               </div>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="block w-full pl-10 pr-4 py-2 bg-[#121215]/50 border border-white/5 rounded-xl text-sm text-ivory placeholder-gray-600 focus:ring-1 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all font-sans"
+                className="block w-full pl-10 pr-4 py-3 bg-black/60 border border-white/10 rounded-xl text-sm text-[#F2E7D5] placeholder-[#F2E7D5]/30 focus:ring-1 focus:ring-[#C8A24A]/60 focus:border-[#C8A24A]/60 transition-all font-sans outline-none"
                 placeholder="you@example.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-300 mb-1 ml-1 font-bold">Password</label>
+            <label className="block text-[10px] font-mono uppercase tracking-[0.15em] text-[#F2E7D5]/60 mb-2 font-bold flex justify-between">
+              Password
+              {isLoginOnly && <button type="button" className="text-[#C8A24A] hover:underline font-serif normal-case italic text-[11px] tracking-normal">Forgot password?</button>}
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-gray-500" />
+                <Lock className="h-4 w-4 text-[#C8A24A]/70" />
               </div>
               <input
                 type="password"
@@ -571,15 +639,15 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 minLength={6}
-                className="block w-full pl-10 pr-4 py-2 bg-[#121215]/50 border border-white/5 rounded-xl text-sm text-ivory placeholder-gray-600 focus:ring-1 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all font-sans"
+                className="block w-full pl-10 pr-4 py-3 bg-black/60 border border-white/10 rounded-xl text-sm text-[#F2E7D5] placeholder-[#F2E7D5]/30 focus:ring-1 focus:ring-[#C8A24A]/60 focus:border-[#C8A24A]/60 transition-all font-sans outline-none font-mono tracking-widest text-lg"
                 placeholder="••••••••"
               />
             </div>
           </div>
 
           {authError && (
-            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-xs flex items-start gap-1.5 leading-relaxed">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/30 text-red-200 text-xs flex items-start gap-2 leading-relaxed">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
               <p>{authError}</p>
             </div>
           )}
@@ -587,65 +655,166 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 font-semibold py-2.5 rounded-xl hover:bg-gold-400 transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(198,169,107,0.15)] mt-4 disabled:opacity-50 text-sm"
+            className="w-full mt-4 bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold py-3.5 rounded-full hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_25px_rgba(200,162,74,0.3)] disabled:opacity-50 text-sm relative overflow-hidden group"
           >
+            <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+            
             {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#050505]" />
             ) : isLogin ? (
-              <>
-                <LogIn className="w-4 h-4" />
-                Sign In to Cellar
-              </>
+              'Sign In to Cellar'
             ) : (
-              <>
-                <UserPlus className="w-4 h-4" />
-                Configure Taste DNA
-              </>
+              'Configure Taste DNA'
             )}
           </button>
         </form>
+
+        {isLoginOnly && (
+          <div className="mt-6 relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-px bg-white/10 flex-1"></div>
+              <span className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Or</span>
+              <div className="h-px bg-white/10 flex-1"></div>
+            </div>
+            
+            <div className="space-y-3">
+              <button disabled className="w-full py-3 rounded-xl border border-white/10 bg-black/40 text-[13px] font-sans text-[#F2E7D5] hover:bg-white/5 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 opacity-80 hover:opacity-100">
+                Continue with Google
+              </button>
+              <button disabled className="w-full py-3 rounded-xl border border-white/10 bg-black/40 text-[13px] font-sans text-[#F2E7D5] hover:bg-white/5 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 opacity-80 hover:opacity-100">
+                Continue with Apple
+              </button>
+            </div>
+            
+            <div className="mt-5 text-center flex items-center justify-center gap-1.5 opacity-50">
+              <Lock className="w-3 h-3 text-[#C8A24A]" />
+              <span className="text-[9px] font-mono tracking-widest uppercase text-[#F2E7D5]">Secured by 256-bit Encryption</span>
+            </div>
+          </div>
+        )}
       </div>
+
+      {!isLoginOnly && (
+         <div className="mt-6 p-4 rounded-xl border border-[#C8A24A]/30 bg-[#1A1813] w-full text-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+            <h4 className="text-[12px] font-bold text-[#C8A24A] font-serif mb-1">Journey Complete!</h4>
+            <p className="text-[11px] text-[#F2E7D5]/70 mb-3">All 4 winemaking stages mastered.<br/>Your Tasting DNA has been crafted.<br/>Enter your cellar.</p>
+            <div className="h-1 bg-black rounded-full overflow-hidden w-2/3 mx-auto flex items-center">
+               <div className="h-full bg-[#C8A24A] w-full shadow-[0_0_10px_rgba(200,162,74,1)]"></div>
+            </div>
+         </div>
+      )}
+
+      {isLoginOnly && (
+        <button className="mt-8 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/50 hover:text-[#C8A24A] transition-colors border-b border-transparent hover:border-[#C8A24A] pb-1">
+          Don't have an account? <span className="text-[#C8A24A] font-bold">Create Your Tasting DNA</span>
+        </button>
+      )}
     </div>
   );
 
   const renderCelebration = () => (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center bg-[#0B0B0C]">
-      <div className="absolute inset-0 z-0 opacity-5 pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23c6a96b\" fill-opacity=\"1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')" }}></div>
-      <div className="relative z-10 w-full max-w-sm">
+    <div className="absolute inset-0 flex flex-col items-center justify-start pt-16 p-6 z-20 text-center bg-[#050505]">
+      {/* Subtle geometric lines */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#C8A24A 1px, transparent 1px), linear-gradient(90deg, #C8A24A 1px, transparent 1px)', backgroundSize: '40px 40px', backgroundPosition: 'center' }}></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-[#C8A24A]/10 rounded-full blur-[100px] z-0 pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center h-full">
+        <div className="text-[10px] uppercase tracking-widest font-mono text-[#F2E7D5]/60 mb-10 flex items-center gap-2">
+          <div className="w-8 h-px bg-[#C8A24A]/40"></div>
+          Afrisommelier • AI Sommelier
+          <div className="w-8 h-px bg-[#C8A24A]/40"></div>
+        </div>
+
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.8 }}
-          className="w-24 h-24 rounded-full bg-gold-500/10 border border-gold-500/30 flex flex-col items-center justify-center mx-auto mb-6 shadow-[0_0_35px_rgba(198,169,107,0.15)] relative"
+           initial={{ scale: 0.8, opacity: 0 }}
+           animate={{ scale: 1, opacity: 1 }}
+           transition={{ type: "spring", duration: 0.8 }}
+           className="w-32 h-32 rounded-full border border-[#C8A24A]/40 flex flex-col items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(200,162,74,0.15)] relative bg-[#050505] z-10"
         >
-          <Compass className="w-8 h-8 text-gold-400 mb-0.5" />
-          <span className="text-[9px] text-gold-500 font-bold tracking-widest uppercase">Passport</span>
-          <div className="absolute -bottom-2.5 bg-[#151518] border border-gold-500/50 px-3 py-0.5 rounded-full text-gold-400 text-[10px] font-bold shadow-lg">
-            FIRST SIP
-          </div>
+           <div className="absolute inset-2 border border-[#C8A24A]/30 rounded-full border-dashed animate-[spin_60s_linear_infinite]"></div>
+           <div className="absolute inset-4 border border-[#C8A24A]/40 rounded-full flex items-center justify-center">
+              <Compass className="w-10 h-10 text-[#C8A24A] absolute" />
+           </div>
+           <span className="text-[9px] text-[#C8A24A] font-bold tracking-widest uppercase relative z-20 mt-8 mb-1 bg-[#050505] px-1">Passport</span>
+           
+           <div className="absolute -bottom-3 bg-[#0A0A0A] border border-[#C8A24A] px-4 py-1 rounded-full text-[#C8A24A] text-[10px] font-bold shadow-lg z-30 uppercase tracking-widest whitespace-nowrap">
+             First Sip
+           </div>
         </motion.div>
         
         <motion.h2 
           initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-2xl font-serif text-ivory mb-2 font-semibold"
+          className="text-4xl font-serif text-[#F2E7D5] mb-2 font-normal leading-tight mt-4"
         >
-          Taste Passport Unlocked
+          Taste Passport<br/>
+          <span className="text-[#C8A24A] font-bold italic">Unlocked</span>
         </motion.h2>
         <motion.p 
           initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-gray-400 font-serif text-sm italic mb-6 max-w-xs mx-auto"
+          className="text-[#F2E7D5]/70 font-serif text-[13px] italic mb-8 max-w-[260px] mx-auto leading-relaxed"
         >
           "Your custom wine tasting history and curation is ready for exploration."
         </motion.p>
+
+        <motion.div 
+           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }}
+           className="grid grid-cols-3 gap-2 w-full mb-8"
+        >
+           {[
+             { title: 'Cellar', desc: 'Your curated wines', icon: <Briefcase className="w-4 h-4" /> },
+             { title: 'Terroir Map', desc: "Africa's regions", icon: <MapPin className="w-4 h-4" /> },
+             { title: 'AI Pairings', desc: 'Smart matches', icon: <Sparkles className="w-4 h-4" /> }
+           ].map((ft, idx) => (
+              <div key={idx} className="bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/30 rounded-xl p-3 flex flex-col items-center justify-center text-center shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+                 <div className="text-[#C8A24A] mb-1.5">{ft.icon}</div>
+                 <h4 className="text-[10px] font-bold text-[#F2E7D5] font-sans uppercase tracking-wider mb-1">{ft.title}</h4>
+                 <p className="text-[9px] text-[#F2E7D5]/60 font-serif">{ft.desc}</p>
+              </div>
+           ))}
+        </motion.div>
+
+        <motion.div
+           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+           className="grid grid-cols-3 divide-x divide-white/10 w-full border-t border-b border-white/10 py-3 mb-8"
+        >
+           <div className="flex flex-col items-center">
+             <span className="text-[#C8A24A] font-serif text-lg font-bold mb-0.5">200+</span>
+             <span className="text-[9px] uppercase font-mono text-[#F2E7D5]/50 tracking-wider">African Wines</span>
+           </div>
+           <div className="flex flex-col items-center">
+             <span className="text-[#C8A24A] font-serif text-lg font-bold mb-0.5">6</span>
+             <span className="text-[9px] uppercase font-mono text-[#F2E7D5]/50 tracking-wider">Countries Mapped</span>
+           </div>
+           <div className="flex flex-col items-center">
+             <span className="text-[#C8A24A] font-serif text-lg font-bold mb-0.5">AI</span>
+             <span className="text-[9px] uppercase font-mono text-[#F2E7D5]/50 tracking-wider">Sommelier Engine</span>
+           </div>
+        </motion.div>
+
+        <motion.div
+           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8 }}
+           className="mb-8 w-full"
+        >
+           <p className="text-sm font-serif italic text-[#C8A24A]/90 text-center px-4 leading-relaxed">
+             "Your palate is the passport.<br />Africa is the destination."
+           </p>
+        </motion.div>
         
+        <div className="flex-1"></div>
+
         <motion.button
-          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}
+          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }}
           onClick={handleNextClick}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 font-semibold text-sm hover:from-gold-500 hover:to-gold-400 transition-all duration-300 shadow-[0_4px_20px_rgba(198,169,107,0.2)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold text-sm hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_8px_30px_rgba(200,162,74,0.3)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2 mb-4"
         >
           Enter Your Cellar
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </motion.button>
+        
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex justify-center gap-4 w-full opacity-50 mb-4">
+           <div className="h-8 w-24 border border-white/20 bg-white/5 rounded overflow-hidden flex items-center justify-center text-[8px] text-white uppercase tracking-widest font-mono">App Store</div>
+           <div className="h-8 w-24 border border-white/20 bg-white/5 rounded overflow-hidden flex items-center justify-center text-[8px] text-white uppercase tracking-widest font-mono">Google Play</div>
+        </motion.div>
       </div>
     </div>
   );
@@ -675,80 +844,90 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B0B0C] text-ivory flex flex-col items-center justify-between relative overflow-hidden selection:bg-gold-500/30 font-sans py-4">
-      {/* Background Ambience / Wine Glow */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0e0e11] to-[#08080a] z-0" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[350px] h-[350px] md:w-[600px] md:h-[600px] bg-wine-500/5 rounded-full blur-[120px] z-0 pointer-events-none transition-all duration-1000" style={{ transform: `translate(-50%, ${step * 4}px)` }} />
-      <div className="absolute bottom-10 right-10 w-48 h-48 bg-gold-500/5 rounded-full blur-[80px] z-0 pointer-events-none" />
+    <div className="min-h-[100dvh] bg-[#050505] text-[#F2E7D5] flex flex-col items-center justify-between relative overflow-hidden selection:bg-[#C8A24A]/30 font-sans border-0 sm:border sm:border-[#C8A24A]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] lg:max-w-md lg:mx-auto">
+      {/* Frame Gold Border Effect (Mobile Outline) */}
+      <div className="absolute inset-0 border-[0.5px] border-[#C8A24A]/20 pointer-events-none z-50 rounded-sm lg:rounded-none m-1"></div>
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 z-0">
+         <div className="absolute top-0 right-0 w-full h-[400px] bg-gradient-to-b from-[#C8A24A]/5 to-transparent pointer-events-none"></div>
+         <div className="absolute bottom-0 left-0 w-full h-[400px] bg-gradient-to-t from-[#C8A24A]/5 to-transparent pointer-events-none"></div>
+         {step === 7 && isLoginOnly && (
+           <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none scale-[2] translate-y-[20%]">
+             <svg viewBox="0 0 100 300" className="w-full h-full fill-[#C8A24A]"><path d="M40 0h20v60c0 20 15 30 20 50v180H20V110c5-20 20-30 20-50V0z"/></svg>
+           </div>
+         )}
+      </div>
 
       {showHeader && (
-        <div className="w-full max-w-lg px-6 z-20 mt-2">
-          {/* 4 Stages of Winemaking Visual Indicator */}
-          <div className="bg-black/30 backdrop-blur-md rounded-2xl border border-white/5 p-3 mb-3">
-            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold-400/80 mb-2.5 text-center font-bold">
-              Winemaking Stage
-            </div>
-            <div className="flex items-center justify-between gap-1">
-              {winemakingStages.map((stage, idx) => {
-                const isActive = stage.activeSteps.includes(step);
-                const isCompleted = stage.activeSteps.every(st => step > st) || 
-                  (idx === 0 && step > 1) || 
-                  (idx === 1 && step > 2) || 
-                  (idx === 2 && step > 4);
+        <div className="w-full max-w-md px-6 z-20 mt-6 md:mt-8">
+          <div className="mb-2 text-center">
+            <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-[#C8A24A] font-bold">
+              {step === 7 && isLoginOnly ? 'Afrisommelier Estate' : 'Winemaking Stage'}
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between gap-0 mb-6 px-2">
+            {winemakingStages.map((stage, idx) => {
+              const isActive = stage.activeSteps.includes(step);
+              const isCompleted = stage.activeSteps.every(st => step > st) || 
+                (idx === 0 && step > 1) || 
+                (idx === 1 && step > 2) || 
+                (idx === 2 && step > 4) ||
+                (step === 7 && isLoginOnly);
 
-                return (
-                  <div key={stage.id} className="flex-1 flex flex-col items-center relative">
-                    <div className="flex items-center w-full">
-                      {idx > 0 && (
-                        <div className={`h-[1px] flex-1 transition-all duration-500 ${isCompleted || isActive ? 'bg-gold-500' : 'bg-white/10'}`} />
-                      )}
-                      <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-mono font-bold transition-all duration-500 shrink-0 ${
-                        isActive 
-                          ? 'bg-gold-500 border-gold-400 text-wine-950 ring-4 ring-gold-500/20 scale-105' 
-                          : isCompleted 
-                            ? 'bg-gold-500/20 border-gold-500 text-gold-400' 
-                            : 'bg-[#151518] border-white/5 text-gray-500'
-                      }`}>
-                        {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : stage.id}
-                      </div>
-                      {idx < 3 && (
-                        <div className={`h-[1px] flex-1 transition-all duration-500 ${isCompleted ? 'bg-gold-500' : 'bg-white/10'}`} />
-                      )}
-                    </div>
-                    <span className={`text-[9px] uppercase tracking-wider font-semibold mt-1 font-mono transition-colors duration-300 ${
-                      isActive ? 'text-gold-400' : isCompleted ? 'text-gold-500/70' : 'text-gray-500'
+              return (
+                <div key={stage.id} className="flex-1 flex flex-col items-center relative group">
+                  <div className="flex items-center w-full">
+                    {idx > 0 && (
+                      <div className={`h-px flex-1 transition-all duration-500 ${isCompleted || isActive ? 'bg-[#C8A24A]' : 'bg-white/10'}`} />
+                    )}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-500 shrink-0 relative z-10 ${
+                      isActive 
+                        ? 'bg-[#C8A24A] border-[#C8A24A] text-[#050505]' 
+                        : isCompleted 
+                          ? 'bg-[#050505] border-[#C8A24A]/70 text-[#C8A24A]' 
+                          : 'bg-[#050505] border-white/20 text-transparent'
                     }`}>
-                      {stage.tag}
-                    </span>
+                      {isCompleted && !isActive ? <Check className="w-3 h-3 stroke-[3]" /> : isActive ? <div className="w-1.5 h-1.5 bg-[#050505] rounded-full" /> : null}
+                    </div>
+                    {idx < 3 && (
+                      <div className={`h-px flex-1 transition-all duration-500 ${isCompleted ? 'bg-[#C8A24A]' : 'bg-white/10'}`} />
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  <span className={`absolute top-6 whitespace-nowrap text-[8px] uppercase tracking-widest font-semibold font-mono transition-colors duration-300 ${
+                    isActive ? 'text-[#C8A24A]' : isCompleted ? 'text-[#C8A24A]/70' : 'text-[#F2E7D5]/30'
+                  }`}>
+                    {stage.tag}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="flex justify-between items-center text-xs text-gray-400">
+          <div className="flex justify-between items-center text-xs mt-6 mb-2">
             <button 
               onClick={back}
-              className="hover:text-gold-400 transition-colors disabled:opacity-0 flex items-center gap-1 py-1 px-2 -ml-2 rounded-lg hover:bg-white/5"
+              className="text-[#F2E7D5]/50 hover:text-[#C8A24A] transition-colors disabled:opacity-0 flex items-center gap-1 font-mono uppercase tracking-widest text-[9px]"
               disabled={step === 1 || (step === 7 && !isLoginOnly)}
             >
               Back
             </button>
-            <span className="text-gold-500 font-mono text-[11px] font-semibold tracking-wider">Step {Math.min(step, 6)}/6</span>
+            <span className="text-[#C8A24A] font-mono text-[9px] font-semibold tracking-widest uppercase">Step {Math.min(step, 6)}/6</span>
           </div>
         </div>
       )}
 
       {/* Main step view slot with tight layouts */}
-      <div className="w-full flex-1 flex items-center justify-center overflow-y-auto max-w-lg px-6 my-4 z-10">
+      <div className="w-full flex-1 flex items-start justify-center overflow-y-auto max-w-md px-6 z-10 custom-scrollbar pb-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="w-full flex justify-center py-2"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
+            className="w-full flex justify-center py-2 relative"
           >
             {renderCurrentStep()}
           </motion.div>
@@ -756,15 +935,37 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       </div>
 
       {showHeader && step !== 7 && (
-        <div className="w-full max-w-lg px-6 pb-4 pt-1 z-20 flex justify-end">
+        <div className="w-full max-w-md px-6 pb-6 pt-4 z-20 flex flex-col items-center bg-[#050505]/80 backdrop-blur-md">
+          {/* Progress completion bar */}
+          <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden mb-5 relative">
+            <div className="absolute top-0 left-0 h-full bg-[#C8A24A] transition-all duration-500 ease-out shadow-[0_0_10px_rgba(200,162,74,0.8)]" style={{ width: `${(step / 6) * 100}%` }}></div>
+          </div>
           <button
             onClick={handleNextClick}
             disabled={isSaving || (step === 1 && !answers.identity)}
-            className="flex items-center justify-center gap-2 w-full xs:w-auto px-8 py-3 rounded-xl font-medium bg-gradient-to-r from-gold-600 to-gold-500 text-wine-950 hover:from-gold-500 hover:to-gold-400 shadow-[0_4px_20px_rgba(198,169,107,0.2)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] text-sm"
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-full font-semibold bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] hover:from-[#dabb70] hover:to-[#C8A24A] shadow-[0_8px_25px_rgba(200,162,74,0.25)] transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] text-sm tracking-wide"
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continue'}
-            {!isSaving && <ArrowRight className="w-4 h-4" />}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-[#050505]" /> : 'Continue'}
+            {!isSaving && <ArrowRight className="w-4 h-4 ml-1" />}
           </button>
+          
+          <div className="mt-8 flex flex-col items-center pb-2 opacity-50 text-center">
+             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1 font-bold">Afrisommelier Estate</span>
+             <span className="text-[9px] font-serif italic text-white/50">"Discover Africa's finest terroir, one sip at a time."</span>
+          </div>
+        </div>
+      )}
+      
+      {step === 7 && isLoginOnly && (
+        <div className="w-full max-w-md px-6 pb-8 z-20 flex flex-col items-center mt-auto">
+          <div className="flex justify-center gap-3 w-full opacity-60 mb-8 mt-6">
+             <div className="h-10 w-32 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center text-[10px] text-[#F2E7D5] uppercase tracking-widest font-mono hover:bg-white/10 transition-colors cursor-pointer">App Store</div>
+             <div className="h-10 w-32 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center text-[10px] text-[#F2E7D5] uppercase tracking-widest font-mono hover:bg-white/10 transition-colors cursor-pointer">Google Play</div>
+          </div>
+          <div className="flex flex-col items-center pb-2 text-center opacity-70">
+             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#C8A24A] mb-1.5 font-bold">Afrisommelier Estate</span>
+             <span className="text-[10px] font-serif italic text-[#F2E7D5]/70">Africa's AI-Powered Sommelier Experience</span>
+          </div>
         </div>
       )}
     </div>

@@ -143,12 +143,12 @@ export default function CellarTab({ onSelectWine, onNavigate, initialViewMode = 
     <div className="pb-32 pt-12 px-6 w-full max-w-6xl mx-auto">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-3xl font-serif font-semibold mb-1">My Collection</h2>
-          <p className="text-gray-400 text-sm">{wines.length} Bottles • R {totalValue.toLocaleString()}</p>
+          <h2 className="text-3xl font-serif font-normal text-[#F2E7D5] mb-1">My Collection</h2>
+          <p className="text-[#F2E7D5]/50 text-sm font-serif italic">{wines.length} Bottles • R {totalValue.toLocaleString()}</p>
         </div>
         <button 
           onClick={() => onNavigate('collection-add')}
-          className="w-10 h-10 rounded-full bg-glass border border-glass-border flex items-center justify-center hover:bg-white/10 transition-colors"
+          className="w-10 h-10 rounded-full bg-[#0A0A0A] border border-[#C8A24A]/40 flex items-center justify-center hover:bg-[#C8A24A]/10 hover:border-[#C8A24A] transition-all shadow-[0_0_15px_rgba(200,162,74,0.15)] hover:shadow-[0_0_25px_rgba(200,162,74,0.3)] text-[#C8A24A] animate-pulse-glow"
           id="add_wine_plus_btn"
         >
           <Plus size={20} />
@@ -157,18 +157,18 @@ export default function CellarTab({ onSelectWine, onNavigate, initialViewMode = 
 
       {/* View Toggle and Sort */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex bg-glass border border-glass-border rounded-xl p-1">
+        <div className="flex bg-[#0A0A0A]/80 border border-[#C8A24A]/20 rounded-xl p-1 shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
           <button 
             onClick={() => setViewMode('cellar')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${viewMode === 'cellar' ? 'bg-wine-800 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-mono uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'cellar' ? 'bg-[#12100C] text-[#C8A24A] shadow-[0_2px_10px_rgba(200,162,74,0.15)] border border-[#C8A24A]/30' : 'text-[#F2E7D5]/40 hover:text-[#C8A24A]'}`}
           >
-            <Wine size={16} /> Cellar
+            <Wine size={14} /> Cellar
           </button>
           <button 
             onClick={() => setViewMode('wishlist')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${viewMode === 'wishlist' ? 'bg-wine-800 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-mono uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all ${viewMode === 'wishlist' ? 'bg-[#12100C] text-[#C8A24A] shadow-[0_2px_10px_rgba(200,162,74,0.15)] border border-[#C8A24A]/30' : 'text-[#F2E7D5]/40 hover:text-[#C8A24A]'}`}
           >
-            <Heart size={16} /> Wishlist
+            <Heart size={14} /> Wishlist
           </button>
         </div>
         
@@ -178,30 +178,30 @@ export default function CellarTab({ onSelectWine, onNavigate, initialViewMode = 
               <>
                 <button 
                   onClick={() => setLayoutMode('grid')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'grid' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-mono tracking-widest uppercase font-bold transition-colors ${layoutMode === 'grid' ? 'bg-[#C8A24A]/20 text-[#C8A24A]' : 'text-[#F2E7D5]/40 hover:text-[#C8A24A]'}`}
                 >
                   Grid
                 </button>
                 <button 
                   onClick={() => setLayoutMode('shelf')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${layoutMode === 'shelf' ? 'bg-white/20 text-ivory' : 'text-gray-400 hover:text-ivory'}`}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-mono tracking-widest uppercase font-bold transition-colors ${layoutMode === 'shelf' ? 'bg-[#C8A24A]/20 text-[#C8A24A]' : 'text-[#F2E7D5]/40 hover:text-[#C8A24A]'}`}
                 >
                   Shelf
                 </button>
               </>
             )}
             {viewMode === 'wishlist' && (
-              <span className="text-xs font-mono text-gray-500 uppercase tracking-widest pl-1 py-1">
+              <span className="text-[10px] font-mono text-[#C8A24A] uppercase tracking-widest pl-1 py-1 font-bold">
                 Wishlist Vault
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-400 font-medium">Sort:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/50 font-bold">Sort:</span>
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-glass border border-glass-border rounded-lg py-1 px-2 text-xs text-ivory focus:outline-none focus:border-gold-500 w-28 md:w-32 cursor-pointer font-medium"
+              className="bg-[#0A0A0A] border border-[#C8A24A]/30 rounded-lg py-1.5 px-3 text-[10px] uppercase font-mono tracking-widest text-[#C8A24A] font-bold focus:outline-none focus:border-[#C8A24A] w-28 md:w-32 cursor-pointer shadow-[0_0_10px_rgba(200,162,74,0.1)] appearance-none"
             >
               <option value="name">Name</option>
               <option value="dateAdded">Added</option>
@@ -231,11 +231,11 @@ export default function CellarTab({ onSelectWine, onNavigate, initialViewMode = 
 
       {/* Grid / Shelf */}
       {loading ? (
-        <div className="text-center text-gold-500 py-10">Loading...</div>
+        <div className="text-center text-[#C8A24A] py-10 font-serif italic text-lg">Loading...</div>
       ) : displayData.length === 0 ? (
-        <div className="text-center text-gray-400 py-10">
-          <p>Your {viewMode} is empty.</p>
-          <p className="text-sm mt-2">Scan or discover a bottle to add it.</p>
+        <div className="text-center text-[#F2E7D5]/50 py-10 luxury-border rounded-2xl bg-[#0A0A0A]/50">
+          <p className="font-serif italic text-lg">Your {viewMode} is empty.</p>
+          <p className="text-[10px] mt-2 font-mono uppercase tracking-widest text-[#C8A24A]">Scan or discover a bottle to add it.</p>
         </div>
       ) : (layoutMode === 'grid' || viewMode === 'wishlist') ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -322,13 +322,13 @@ function InsightChip({ label, count, active, onClick }: any) {
   return (
     <button 
       onClick={onClick}
-      className={`px-4 py-2 rounded-full border whitespace-nowrap text-sm font-medium transition-colors ${
+      className={`px-5 py-2.5 rounded-full border whitespace-nowrap text-[10px] uppercase tracking-widest font-mono transition-all font-bold ${
         active 
-          ? 'bg-ivory text-wine-900 border-ivory' 
-          : 'bg-glass border-glass-border text-gray-400 hover:text-ivory'
+          ? 'bg-[#C8A24A]/20 text-[#C8A24A] border-[#C8A24A]/40 shadow-[0_0_15px_rgba(200,162,74,0.15)]' 
+          : 'bg-[#0A0A0A] border-[#C8A24A]/20 text-[#F2E7D5]/50 hover:text-[#C8A24A] hover:border-[#C8A24A]'
       }`}
     >
-      {label} <span className="ml-1 opacity-60">{count}</span>
+      {label} <span className="ml-1 opacity-60">({count})</span>
     </button>
   );
 }
@@ -338,15 +338,15 @@ function CellarBottle({ name, vintage, status, statusColor, image, onClick }: an
     <motion.div 
       onClick={onClick}
       whileHover={{ y: -5, rotate: 2 }}
-      className="glass-panel p-3 cursor-pointer group relative overflow-hidden"
+      className="bg-[#0A0A0A]/90 luxury-border rounded-xl p-3 cursor-pointer group relative overflow-hidden shadow-[0_8px_25px_rgba(0,0,0,0.5)]"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-      <div className="aspect-[3/4] rounded-lg overflow-hidden mb-3 relative">
-        <img src={image} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#C8A24A]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+      <div className="aspect-[3/4] rounded-lg overflow-hidden mb-3 relative border border-white/5">
+        <img src={image} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
       </div>
-      <h4 className="font-serif text-sm font-medium leading-tight mb-1">{name}</h4>
-      <p className="text-xs text-gray-400 mb-2">{vintage}</p>
-      <p className={`text-[10px] uppercase tracking-wider font-semibold ${statusColor}`}>{status}</p>
+      <h4 className="font-serif text-[15px] text-[#F2E7D5] leading-tight mb-1">{name}</h4>
+      <p className="text-xs text-[#F2E7D5]/70 font-serif italic mb-2">{vintage}</p>
+      <p className={`text-[9px] uppercase tracking-widest font-mono font-bold ${statusColor.replace('text-gold-500', 'text-[#C8A24A]')}`}>{status}</p>
     </motion.div>
   );
 }

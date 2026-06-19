@@ -141,8 +141,17 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-wine-900 text-ivory font-sans selection:bg-gold-500/30">
-      <main className="h-screen overflow-y-auto hide-scrollbar relative">
+    <div className="min-h-[100dvh] bg-[#050505] text-[#F2E7D5] flex flex-col items-center justify-between relative overflow-hidden selection:bg-[#C8A24A]/30 font-sans border-0 sm:border sm:border-[#C8A24A]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] lg:max-w-md lg:mx-auto">
+      {/* Frame Gold Border Effect (Mobile Outline) */}
+      <div className="absolute inset-0 border-[0.5px] border-[#C8A24A]/20 pointer-events-none z-50 rounded-sm lg:rounded-none m-1"></div>
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+         <div className="absolute top-0 right-0 w-full h-[400px] bg-gradient-to-b from-[#C8A24A]/5 to-transparent"></div>
+         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#C8A24A]/5 rounded-full blur-[120px]" />
+      </div>
+
+      <main className="w-full flex-1 h-[100dvh] overflow-y-auto hide-scrollbar relative z-10 custom-scrollbar">
         {selectedGrapeSlug ? (
           <GrapeKnowledgePage 
             slug={selectedGrapeSlug} 
@@ -224,23 +233,26 @@ export default function App() {
 
       {/* Floating Glass Navigation Bar - Hidden in Admin Console Mode & Immersive Add workflows */}
       {activeTab !== 'admin' && activeTab !== 'collection-add' && activeTab !== 'collection-manual' && activeTab !== 'search' && !selectedGrapeSlug && (
-        <nav className="fixed bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-[500px] h-[72px] glass-panel flex justify-between items-center px-6 z-40">
-          <NavItem icon={<Home size={24} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <NavItem icon={<Compass size={24} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
-          
-          {/* Floating Center Scan Button */}
-          <div className="relative -top-6">
-            <button 
-              onClick={() => setActiveTab('scan')}
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-300 to-gold-500 text-wine-900 flex items-center justify-center shadow-[0_8px_32px_rgba(198,169,107,0.4)] hover:scale-105 transition-transform"
-            >
-              <ScanLine size={28} />
-            </button>
-          </div>
+        <div className="absolute bottom-6 left-6 right-6 z-40 max-w-sm mx-auto">
+          <nav className="w-full h-[72px] bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#C8A24A]/20 flex justify-between items-center px-6 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
+            <NavItem icon={<Home size={24} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+            <NavItem icon={<Compass size={24} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
+            
+            {/* Floating Center Scan Button */}
+            <div className="relative -top-6">
+              <button 
+                onClick={() => setActiveTab('scan')}
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
+              >
+                <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+                <ScanLine size={28} />
+              </button>
+            </div>
 
-          <NavItem icon={<MessageSquare size={24} />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-          <NavItem icon={<Grape size={24} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
-        </nav>
+            <NavItem icon={<MessageSquare size={24} />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+            <NavItem icon={<Grape size={24} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
+          </nav>
+        </div>
       )}
 
       <AnimatePresence>
@@ -256,11 +268,14 @@ function NavItem({ icon, active, onClick }: { icon: React.ReactNode, active: boo
   return (
     <button
       onClick={onClick}
-      className={`p-2 transition-colors duration-300 ${
-        active ? 'text-gold-500' : 'text-gray-400 hover:text-ivory'
+      className={`p-2 transition-all duration-300 relative ${
+        active ? 'text-[#C8A24A] scale-110' : 'text-[#F2E7D5]/40 hover:text-[#F2E7D5]/80 hover:scale-105'
       }`}
     >
       {icon}
+      {active && (
+         <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C8A24A] shadow-[0_0_8px_rgba(200,162,74,0.8)]" />
+      )}
     </button>
   );
 }

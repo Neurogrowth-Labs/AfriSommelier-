@@ -83,26 +83,30 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
   };
 
   return (
-    <div className="pb-32 pt-12 w-full max-w-7xl mx-auto">
+    <div className="pb-32 pt-12 w-full max-w-7xl mx-auto mt-2">
       {/* Search Bar */}
       <div className="px-6 mb-4">
-        <div className="relative flex gap-2">
+        <div className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] uppercase mb-3 flex items-center gap-2">
+           <div className="w-6 h-px bg-[#C8A24A]/40"></div>
+           Explore Cellars
+        </div>
+        <div className="relative flex gap-3">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <Search className="text-gray-400" size={20} />
+              <Search className="text-[#C8A24A]" size={20} />
             </div>
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearch}
-              placeholder="E.g., 'Fruity white from Stellenbosch under R300'" 
-              className="w-full bg-glass border border-glass-border rounded-full py-4 pl-12 pr-6 text-sm text-ivory placeholder-gray-400 focus:outline-none focus:border-gold-500 transition-colors"
+              placeholder="E.g., 'Fruity white under R300'" 
+              className="w-full bg-[#0A0A0A]/90 border border-[#C8A24A]/20 rounded-full py-4 pl-12 pr-6 text-sm text-[#F2E7D5] placeholder-[#F2E7D5]/40 focus:outline-none focus:border-[#C8A24A]/60 transition-colors shadow-[0_8px_30px_rgba(0,0,0,0.5)] font-serif italic"
             />
           </div>
           <button 
             onClick={() => setShowFilters(!showFilters)}
-            className={`w-14 h-14 shrink-0 rounded-full flex items-center justify-center transition-colors ${showFilters || filterRegion !== 'All' || filterGrape !== 'All' || filterPrice !== 'All' ? 'bg-gold-500 text-wine-900' : 'bg-glass border border-glass-border text-gray-400 hover:text-ivory'}`}
+            className={`w-14 h-14 shrink-0 rounded-full flex items-center justify-center transition-colors shadow-[0_8px_30px_rgba(0,0,0,0.5)] ${showFilters || filterRegion !== 'All' || filterGrape !== 'All' || filterPrice !== 'All' ? 'bg-[#C8A24A] text-[#050505] shadow-[0_8px_30px_rgba(200,162,74,0.3)]' : 'bg-[#0A0A0A]/90 border border-[#C8A24A]/20 text-[#C8A24A]'}`}
           >
             <Filter size={20} />
           </button>
@@ -110,22 +114,22 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
       </div>
 
       {/* Quick Filter Chips */}
-      <div className="flex overflow-x-auto hide-scrollbar px-6 gap-2 mb-6">
+      <div className="flex overflow-x-auto custom-scrollbar px-6 gap-3 mb-8 pb-2">
         <button 
           onClick={() => { setFilterPrice('Under R150'); handleSearch(undefined, { price: 'Under R150' }); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
+          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
         >
           Under R200
         </button>
         <button 
           onClick={() => { setFilterPrice('Over R600'); handleSearch(undefined, { price: 'Over R600' }); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
+          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
         >
           Luxury
         </button>
         <button 
           onClick={() => { setFilterRegion('Constantia'); handleSearch(undefined, { region: 'Constantia' }); }}
-          className="px-4 py-2 rounded-full border border-glass-border bg-glass text-xs whitespace-nowrap hover:bg-white/10 transition-colors"
+          className="px-5 py-2.5 rounded-full border border-[#C8A24A]/20 bg-[#0A0A0A]/80 text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 whitespace-nowrap hover:bg-[#C8A24A]/10 hover:text-[#C8A24A] hover:border-[#C8A24A]/40 transition-all font-bold"
         >
           Cape Town Nearby
         </button>
@@ -140,13 +144,13 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
             exit={{ opacity: 0, height: 0 }}
             className="px-6 mb-8 overflow-hidden"
           >
-            <div className="glass-panel p-4 rounded-2xl space-y-4">
+            <div className="bg-[#0A0A0A]/90 luxury-border shadow-[0_10px_30px_rgba(0,0,0,0.5)] p-5 rounded-2xl space-y-4">
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block">Region</label>
+                <label className="text-[10px] text-[#C8A24A] uppercase font-mono tracking-[0.2em] mb-2 block font-bold">Region</label>
                 <select 
                   value={filterRegion} 
                   onChange={(e) => setFilterRegion(e.target.value)}
-                  className="w-full bg-wine-900/50 border border-white/10 rounded-lg p-2 text-sm text-ivory focus:outline-none focus:border-gold-500"
+                  className="w-full bg-[#12100C] border border-white/5 rounded-xl p-3 text-sm text-[#F2E7D5] focus:outline-none focus:border-[#C8A24A]/50 transition-colors appearance-none"
                 >
                   <option value="All">All Regions</option>
                   <option value="Stellenbosch">Stellenbosch</option>
@@ -158,11 +162,11 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block">Grape Varietal</label>
+                <label className="text-[10px] text-[#C8A24A] uppercase font-mono tracking-[0.2em] mb-2 block font-bold">Grape Varietal</label>
                 <select 
                   value={filterGrape} 
                   onChange={(e) => setFilterGrape(e.target.value)}
-                  className="w-full bg-wine-900/50 border border-white/10 rounded-lg p-2 text-sm text-ivory focus:outline-none focus:border-gold-500"
+                  className="w-full bg-[#12100C] border border-white/5 rounded-xl p-3 text-sm text-[#F2E7D5] focus:outline-none focus:border-[#C8A24A]/50 transition-colors appearance-none"
                 >
                   <option value="All">All Varietals</option>
                   <option value="Chenin Blanc">Chenin Blanc</option>
@@ -174,11 +178,11 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block">Price Range</label>
+                <label className="text-[10px] text-[#C8A24A] uppercase font-mono tracking-[0.2em] mb-2 block font-bold">Price Range</label>
                 <select 
                   value={filterPrice} 
                   onChange={(e) => setFilterPrice(e.target.value)}
-                  className="w-full bg-wine-900/50 border border-white/10 rounded-lg p-2 text-sm text-ivory focus:outline-none focus:border-gold-500"
+                  className="w-full bg-[#12100C] border border-white/5 rounded-xl p-3 text-sm text-[#F2E7D5] focus:outline-none focus:border-[#C8A24A]/50 transition-colors appearance-none"
                 >
                   <option value="All">Any Price</option>
                   <option value="Under R150">Under R150</option>
@@ -189,9 +193,9 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
               </div>
               <button 
                 onClick={handleSearch}
-                className="w-full bg-gold-500 text-wine-900 font-medium py-2 rounded-lg mt-2 hover:bg-gold-400 transition-colors"
+                className="w-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold py-3.5 rounded-xl mt-4 hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_4px_15px_rgba(200,162,74,0.3)] text-sm uppercase tracking-widest font-mono animate-pulse-glow"
               >
-                Apply Filters & Search
+                Apply Filters
               </button>
             </div>
           </motion.div>
@@ -245,27 +249,27 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
       </AnimatePresence>
 
       {/* AI Tools */}
-      <div className="px-6 mb-8 flex gap-4">
+      <div className="px-6 mb-12 flex gap-3">
         <button 
           onClick={() => setShowPartyMode(true)}
-          className="flex-1 bg-gradient-to-br from-pink-500/20 to-purple-600/20 border border-pink-500/30 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-pink-500/30 transition-colors"
+          className="flex-1 bg-[#12100C] border border-[#C8A24A]/20 shadow-[0_4px_15px_rgba(200,162,74,0.1)] rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-[#1A1813] hover:border-[#C8A24A]/40 transition-all group"
         >
-          <Users className="text-pink-400" size={24} />
-          <span className="text-sm font-medium text-pink-100">Party Mode</span>
+          <Users className="text-[#F2E7D5]/70 group-hover:text-[#C8A24A] transition-colors" size={24} />
+          <span className="text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 font-bold group-hover:text-[#C8A24A]">Party Mode</span>
         </button>
         <button 
           onClick={() => setShowGiftEngine(true)}
-          className="flex-1 bg-gradient-to-br from-gold-500/20 to-yellow-600/20 border border-gold-500/30 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-gold-500/30 transition-colors"
+          className="flex-1 bg-[#12100C] border border-[#C8A24A]/20 shadow-[0_4px_15px_rgba(200,162,74,0.1)] rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-[#1A1813] hover:border-[#C8A24A]/40 transition-all group"
         >
-          <Gift className="text-gold-400" size={24} />
-          <span className="text-sm font-medium text-gold-100">Gift Engine</span>
+          <Gift className="text-[#F2E7D5]/70 group-hover:text-[#C8A24A] transition-colors" size={24} />
+          <span className="text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 font-bold group-hover:text-[#C8A24A]">Gift Engine</span>
         </button>
         <button 
           onClick={() => setShowAwards(true)}
-          className="flex-1 bg-gradient-to-br from-blue-500/20 to-cyan-600/20 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-blue-500/30 transition-colors"
+          className="flex-1 bg-[#12100C] border border-[#C8A24A]/20 shadow-[0_4px_15px_rgba(200,162,74,0.1)] rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-[#1A1813] hover:border-[#C8A24A]/40 transition-all group"
         >
-          <Trophy className="text-blue-400" size={24} />
-          <span className="text-sm font-medium text-blue-100">2026 Awards</span>
+          <Trophy className="text-[#F2E7D5]/70 group-hover:text-[#C8A24A] transition-colors" size={24} />
+          <span className="text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/70 font-bold group-hover:text-[#C8A24A]">2026 Awards</span>
         </button>
       </div>
 
@@ -276,7 +280,7 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
 
       {/* Explore Regions */}
       <div className="mb-12">
-        <h3 className="text-xl font-semibold px-6 mb-4">Explore Regions</h3>
+        <h3 className="text-lg font-serif italic text-[#C8A24A] px-6 mb-4">Explore Regions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-6">
           <RegionCard name="Stellenbosch" image="https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=600&auto=format&fit=crop" onClick={() => setSelectedRegion("Stellenbosch")} />
           <RegionCard name="Franschhoek" image="https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?q=80&w=600&auto=format&fit=crop" onClick={() => setSelectedRegion("Franschhoek")} />
@@ -287,7 +291,7 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
 
       {/* Grapes */}
       <div className="mb-12">
-        <h3 className="text-xl font-semibold px-6 mb-4">Grapes</h3>
+        <h3 className="text-lg font-serif italic text-[#C8A24A] px-6 mb-4">Grapes</h3>
         <div className="flex flex-wrap gap-3 px-6">
           <GrapeChip name="Pinotage 🇿🇦" onClick={() => { window.history.pushState(null, '', '/grapes/pinotage'); window.dispatchEvent(new Event('popstate')); }} />
           <GrapeChip name="Chenin Blanc" onClick={() => { window.history.pushState(null, '', '/grapes/chenin-blanc'); window.dispatchEvent(new Event('popstate')); }} />
@@ -311,23 +315,23 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
 function WineThumbnail({ name, region, image, onClick }: any) {
   return (
     <div onClick={onClick} className="min-w-[140px] shrink-0 group cursor-pointer">
-      <div className="aspect-[2/3] rounded-xl overflow-hidden mb-3 relative">
-        <img src={image} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" referrerPolicy="no-referrer" />
-        <div className="absolute inset-0 bg-gradient-to-t from-wine-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div className="aspect-[2/3] rounded-xl overflow-hidden mb-3 relative luxury-border shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+        <img src={image} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505]/80 via-transparent to-transparent opacity-100 transition-opacity"></div>
       </div>
-      <h4 className="font-serif text-sm font-medium leading-tight mb-1">{name}</h4>
-      <p className="text-xs text-gray-400">{region}</p>
+      <h4 className="font-serif text-[15px] text-[#F2E7D5] leading-tight mb-1">{name}</h4>
+      <p className="text-[11px] uppercase font-mono tracking-wider text-[#C8A24A]/70">{region}</p>
     </div>
   );
 }
 
 function RegionCard({ name, image, onClick }: any) {
   return (
-    <div onClick={onClick} className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group">
-      <img src={image} alt={name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" referrerPolicy="no-referrer" />
-      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <h4 className="font-serif text-lg font-medium tracking-wide">{name}</h4>
+    <div onClick={onClick} className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group luxury-border shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+      <img src={image} alt={name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+      <div className="absolute inset-0 bg-[#050505]/50 group-hover:bg-[#050505]/30 transition-colors"></div>
+      <div className="absolute inset-0 flex items-center justify-center p-2 text-center border border-white/5 m-2 rounded-lg pointer-events-none">
+        <h4 className="font-serif text-[15px] text-[#F2E7D5] font-medium tracking-wide leading-tight">{name}</h4>
       </div>
     </div>
   );
@@ -335,7 +339,7 @@ function RegionCard({ name, image, onClick }: any) {
 
 function GrapeChip({ name, onClick }: { name: string, onClick?: () => void }) {
   return (
-    <button onClick={onClick} className="px-5 py-2.5 rounded-full border border-glass-border bg-glass hover:bg-white/10 transition-colors text-sm font-medium">
+    <button onClick={onClick} className="px-5 py-2.5 rounded-full border border-[#C8A24A]/30 bg-[#0A0A0A]/80 hover:bg-[#C8A24A]/10 hover:border-[#C8A24A]/50 hover:text-[#C8A24A] transition-all text-[#F2E7D5] font-serif italic text-sm shadow-[0_4px_10px_rgba(0,0,0,0.3)] luxury-border">
       {name}
     </button>
   );
