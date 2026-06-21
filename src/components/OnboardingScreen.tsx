@@ -215,35 +215,37 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
     <motion.div 
       key="step-0"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-between pt-4 pb-28 px-6 z-20 text-center bg-[#050505]"
+      className="absolute inset-0 flex flex-col items-center justify-between pt-16 pb-12 px-6 z-20 text-center bg-[#050505]"
     >
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Subtle geometric lines reflecting the heritage theme */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#C8A24A 1px, transparent 1px), linear-gradient(90deg, #C8A24A 1px, transparent 1px)', backgroundSize: '40px 40px', backgroundPosition: 'center' }}></div>
       </div>
       
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center select-none flex-1 pt-4">
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center justify-between select-none flex-1 py-4">
         {/* Elegant wine glasses visual descriptor */}
-        <motion.h1 
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-4xl font-serif font-normal text-[#F2E7D5] mb-2 leading-[1.1] tracking-tight px-1 mt-2"
-        >
-          Enoviq <span className="text-[#C8A24A] font-bold italic">Estate</span>
-        </motion.h1>
-        
-        <motion.p 
-          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-          className="text-[#F2E7D5]/70 text-[13px] mb-4 font-serif leading-relaxed italic max-w-[280px] mx-auto"
-        >
-          "An AI-designed sommelier mapping, unlocking winemaking heritage, perfect pairings and investment-grade cellar yields."
-        </motion.p>
+        <div>
+          <motion.h1 
+            initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+            className="text-4xl font-serif font-normal text-[#F2E7D5] mb-2 leading-[1.1] tracking-tight px-1 mt-2"
+          >
+            Enoviq <span className="text-[#C8A24A] font-bold italic">Estate</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+            className="text-[#F2E7D5]/70 text-[13px] font-serif leading-relaxed italic max-w-[280px] mx-auto"
+          >
+            "An AI-designed sommelier mapping, unlocking winemaking heritage, perfect pairings and investment-grade cellar yields."
+          </motion.p>
+        </div>
 
         {/* Elegant 4 winemaking stages highlight list */}
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.5 }}
-           className="w-full bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/20 p-5 rounded-xl text-center space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] mb-6"
+           className="w-full bg-[#0A0A0A]/80 backdrop-blur-md border border-[#C8A24A]/20 p-5 rounded-xl text-center space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] mt-8 mb-4"
         >
            <h3 className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] text-center font-bold uppercase mb-2">The 4 Winemaking Stages</h3>
            <div className="grid grid-cols-2 gap-4">
@@ -267,12 +269,10 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
                  <h4 className="text-[11px] font-bold text-[#F2E7D5] uppercase tracking-wider mb-0.5">Bottle</h4>
                  <p className="text-[9px] text-[#F2E7D5]/50 leading-snug">Maturing in select oak.</p>
               </div>
-           </div>
-        </motion.div>
+            </div>
+         </motion.div>
         
-        <div className="flex-1"></div>
-
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-4 w-full">
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="space-y-4 w-full pt-1">
              <button 
              onClick={proceed}
              className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-semibold text-sm hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_8px_30px_rgba(200,162,74,0.3)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2 relative overflow-hidden animate-pulse-glow"
@@ -287,7 +287,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
              className="w-full text-[10px] uppercase font-mono tracking-widest text-[#F2E7D5]/50 hover:text-[#C8A24A] transition-colors"
           >
             Already registered? <span className="text-[#C8A24A] font-bold border-b border-[#C8A24A] pb-0.5">Log In</span>
-          </button>
+           </button>
         </motion.div>
       </div>
     </motion.div>
@@ -709,61 +709,16 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
           <div className="w-8 h-px bg-[#C8A24A]/40"></div>
         </div>
 
-        <motion.div
-           initial={{ scale: 0.8, opacity: 0 }}
-           animate={{ scale: 1, opacity: 1 }}
-           transition={{ type: "spring", duration: 0.8 }}
-           className="w-32 h-32 rounded-full border border-[#C8A24A]/40 flex flex-col items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(200,162,74,0.15)] relative bg-[#050505] z-10"
+        <motion.button
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", duration: 0.8 }}
+          onClick={handleNextClick}
+          className="mx-auto px-6 py-3.5 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-bold text-xs uppercase tracking-widest hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_8px_30px_rgba(200,162,74,0.3)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-2 mb-6"
         >
-           <div className="absolute inset-2 border border-[#C8A24A]/30 rounded-full border-dashed animate-[spin_60s_linear_infinite]"></div>
-           <div className="absolute inset-4 border border-[#C8A24A]/40 rounded-full flex items-center justify-center">
-              <svg 
-                viewBox="0 0 64 64" 
-                className="w-14 h-14 text-[#C8A24A] absolute" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="1.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                {/* Elegant Slanted Wine Bottle on the right */}
-                <path 
-                  d="M 44,12 L 54,22 C 55,23 55,25 54,26 L 38,42 C 37,43 35,43 34,42 L 30,38 C 29,37 29,35 30,34 L 41,18 C 41,17 40,15 41,14 L 42,11 L 44,12 Z" 
-                  stroke="#C8A24A" 
-                  fill="rgba(200, 162, 74, 0.15)" 
-                />
-                <path d="M 32,38 L 24,46" stroke="#C8A24A" strokeWidth="2" />
-                <path d="M 22,44 Q 21,45 23,47" stroke="#C8A24A" strokeWidth="2.5" />
-                
-                {/* Sparkling Crimson Droplet */}
-                <path 
-                  d="M 19,50 C 19,50 18.5,53 20,53 C 21.5,53 21,50 21,50 Z" 
-                  fill="#ef4444" 
-                  stroke="#ef4444" 
-                  strokeWidth="0.8" 
-                  className="animate-bounce" 
-                />
-                
-                {/* Elegant Wine Glass on bottom-left */}
-                <path 
-                  d="M 12,40 C 12,48 24,48 24,40" 
-                  stroke="#C8A24A" 
-                  fill="rgba(200, 162, 74, 0.05)" 
-                />
-                {/* Liquid Level color inside the glass */}
-                <path d="M 13.5,42.5 C 15.5,45 20.5,45 22.5,42.5" stroke="#ef4444" strokeWidth="1.2" />
-                {/* Glass Stem */}
-                <line x1="18" y1="48" x2="18" y2="55" stroke="#C8A24A" />
-                {/* Base of Glass */}
-                <line x1="13" y1="55" x2="23" y2="55" stroke="#C8A24A" strokeWidth="1.5" />
-              </svg>
-           </div>
-           <span className="text-[9px] text-[#C8A24A] font-bold tracking-widest uppercase relative z-20 mt-8 mb-1 bg-[#050505] px-1">Passport</span>
-           
-           <div className="absolute -bottom-3 bg-[#0A0A0A] border border-[#C8A24A] px-4 py-1 rounded-full text-[#C8A24A] text-[10px] font-bold shadow-lg z-30 uppercase tracking-widest whitespace-nowrap">
-             First Sip
-           </div>
-        </motion.div>
+          Enter Your Cellar
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </motion.button>
         
         <motion.h2 
           initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
@@ -811,28 +766,10 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
            <div className="flex flex-col items-center">
              <span className="text-[#C8A24A] font-serif text-lg font-bold mb-0.5">AI</span>
              <span className="text-[9px] uppercase font-mono text-[#F2E7D5]/50 tracking-wider">Sommelier Engine</span>
-           </div>
-        </motion.div>
-
-        <motion.div
-           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8 }}
-           className="mb-8 w-full"
-        >
-           <p className="text-sm font-serif italic text-[#C8A24A]/90 text-center px-4 leading-relaxed">
-             "Your palate is the passport.<br />Africa is the destination."
-           </p>
-        </motion.div>
-        
-        <div className="flex-1"></div>
-
-        <motion.button
-          initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }}
-          onClick={handleNextClick}
-          className="mx-auto px-4 py-1.5 rounded bg-gradient-to-r from-[#C8A24A] to-[#B38E36] text-[#050505] font-bold text-[10px] uppercase tracking-wider hover:from-[#dabb70] hover:to-[#C8A24A] transition-all duration-300 shadow-[0_4px_15px_rgba(200,162,74,0.25)] hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-center gap-1 mb-24"
-        >
-          Enter Your Cellar
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </motion.button>
+            </div>
+         </motion.div>
+         
+         <div className="flex-1"></div>
 
       </div>
     </div>

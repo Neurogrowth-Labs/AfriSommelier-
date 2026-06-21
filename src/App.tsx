@@ -4,13 +4,14 @@
  */
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { Home, Compass, ScanLine, MessageSquare, Grape } from 'lucide-react';
+import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User } from 'lucide-react';
 import { supabase } from './supabase';
 import HomeTab from './components/HomeTab';
 import DiscoverTab from './components/DiscoverTab';
 import ScanTab from './components/ScanTab';
 import CellarTab from './components/CellarTab';
 import SommelierChat from './components/SommelierChat';
+import CupidoTab from './components/CupidoTab';
 import WineDetail from './components/WineDetail';
 import TrendingTab from './components/TrendingTab';
 import ProfileTab from './components/ProfileTab';
@@ -177,6 +178,7 @@ export default function App() {
               if (tab === 'discover' && state) setInitialDiscoverState(state);
               if (tab === 'ai' && state) setInitialChatState(state);
             }} />}
+            {activeTab === 'cupido' && <CupidoTab />}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => {
               setActiveTab(tab);
               if (tab === 'cellar') setCellarSubView('cellar');
@@ -233,24 +235,25 @@ export default function App() {
 
       {/* Floating Glass Navigation Bar - Hidden in Admin Console Mode & Immersive Add workflows */}
       {activeTab !== 'admin' && activeTab !== 'collection-add' && activeTab !== 'collection-manual' && activeTab !== 'search' && !selectedGrapeSlug && (
-        <div className="absolute bottom-6 left-6 right-6 z-40 max-w-sm mx-auto">
-          <nav className="w-full h-[72px] bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#C8A24A]/20 flex justify-between items-center px-6 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-            <NavItem icon={<Home size={24} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-            <NavItem icon={<Compass size={24} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
+        <div className="absolute bottom-6 left-4 right-4 z-40 max-w-sm mx-auto">
+          <nav className="w-full h-[72px] bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#C8A24A]/25 flex justify-between items-center px-4 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.9)]">
+            <NavItem icon={<Home size={20} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+            <NavItem icon={<Compass size={20} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
+            <NavItem icon={<Grape size={20} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
             
             {/* Floating Center Scan Button */}
-            <div className="relative -top-6">
+            <div className="relative -top-5">
               <button 
                 onClick={() => setActiveTab('scan')}
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
               >
                 <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
-                <ScanLine size={28} />
+                <ScanLine size={22} />
               </button>
             </div>
 
-            <NavItem icon={<MessageSquare size={24} />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-            <NavItem icon={<Grape size={24} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
+            <NavItem icon={<Heart size={20} className={activeTab === 'cupido' ? 'text-[#8B1538] fill-[#8B1538]' : ''} />} active={activeTab === 'cupido'} onClick={() => setActiveTab('cupido')} />
+            <NavItem icon={<User size={20} />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
           </nav>
         </div>
       )}
