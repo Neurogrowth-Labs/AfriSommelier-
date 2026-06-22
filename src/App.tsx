@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
-import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User, Bell, Calendar, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from './supabase';
 import HomeTab from './components/HomeTab';
 import DiscoverTab from './components/DiscoverTab';
@@ -34,6 +34,17 @@ export default function App() {
   const [initialDiscoverState, setInitialDiscoverState] = useState<any>(null);
   const [initialChatState, setInitialChatState] = useState<{ role: 'user' | 'model', text: string, autoVoice?: boolean } | null>(null);
   const [cellarSubView, setCellarSubView] = useState<'cellar' | 'wishlist'>('cellar');
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const addNotification = (type: 'match' | 'event' | 'info', title: string, message: string) => {
+    const id = Math.random().toString();
+    const newNotif = { id, type, title, message };
+    setNotifications(prev => [newNotif, ...prev].slice(0, 3));
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 6000);
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -120,6 +131,100 @@ export default function App() {
     return () => window.removeEventListener('popstate', handleUrlRouting);
   }, []);
 
+  useEffect(() => {
+    const handleCustomNotification = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        addNotification(detail.type, detail.title, detail.message);
+      }
+    };
+    window.addEventListener('enoviq_notification', handleCustomNotification);
+    return () => window.removeEventListener('enoviq_notification', handleCustomNotification);
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    let matchesChannel: any = null;
+
+    const setupMatchesSubscription = async () => {
+      try {
+        matchesChannel = supabase.channel(`realtime_app_matches_${user.id}`);
+        matchesChannel
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cupido_matches' }, (payload: any) => {
+            if (!isMounted) return;
+            const newMatch = payload.new;
+            if (newMatch && (newMatch.user_one_id === user.id || newMatch.user_two_id === user.id)) {
+              addNotification(
+                'match',
+                'New Wine Match! 🍷',
+                'You have a new mutual Enoviq Cupido match on premium wine preferences!'
+              );
+            }
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn("Matches live channel trigger warning:", err);
+      }
+    };
+
+    setupMatchesSubscription();
+
+    const checkApproachingEvents = async () => {
+      try {
+        const { data: regs, error } = await supabase
+          .from('cupido_event_registrations')
+          .select('event_id')
+          .eq('user_id', user.id);
+
+        if (!error && regs && regs.length > 0) {
+          const registeredEventIds = regs.map((r: any) => r.event_id);
+          if (registeredEventIds.includes('bordeaux')) {
+            addNotification(
+              'event',
+              'Approaching Event! 📅',
+              'Vintage Bordeaux Blind Tasting at Delaire Graff is approaching on June 25, 2026 (in 3 days)!'
+            );
+          }
+          if (registeredEventIds.includes('cabernet')) {
+            addNotification(
+              'event',
+              'Approaching Event! 📅',
+              'Cabernet Collective & Artisan Braai Night at Kanonkop is approaching on June 27, 2026 (in 5 days)!'
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("Approaching events checking warning:", err);
+      }
+    };
+
+    const eventsTimer = setTimeout(() => {
+      if (isMounted) checkApproachingEvents();
+    }, 3000);
+
+    const simulatedTimer = setTimeout(() => {
+      if (isMounted) {
+        addNotification(
+          'match',
+          'New Wine Match! 🍷',
+          'Emma from Stellenbosch Vineyard District just liked you back! Conjoining taste DNA matches at 94%!'
+        );
+      }
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(eventsTimer);
+      clearTimeout(simulatedTimer);
+      if (matchesChannel) {
+        try {
+          supabase.removeChannel(matchesChannel);
+        } catch {}
+      }
+    };
+  }, [user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B0B0C] flex flex-col items-center justify-center text-gold-500 relative overflow-hidden">
@@ -145,6 +250,47 @@ export default function App() {
     <div className="min-h-[100dvh] bg-[#050505] text-[#F2E7D5] flex flex-col items-center justify-between relative overflow-hidden selection:bg-[#C8A24A]/30 font-sans border-0 sm:border sm:border-[#C8A24A]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] lg:max-w-md lg:mx-auto">
       {/* Frame Gold Border Effect (Mobile Outline) */}
       <div className="absolute inset-0 border-[0.5px] border-[#C8A24A]/20 pointer-events-none z-50 rounded-sm lg:rounded-none m-1"></div>
+      
+      {/* Real-time Notification HUD Overlays */}
+      <div className="absolute top-4 left-4 right-4 z-[100] pointer-events-none flex flex-col gap-2.5 max-w-sm mx-auto">
+        <AnimatePresence>
+          {notifications.map((notif) => (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, y: -45, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 15, stiffness: 180 }}
+              className="pointer-events-auto w-full p-3.5 rounded-xl border border-[#C8A24A]/30 bg-[#0A0A0B]/95 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.85)] flex items-start gap-3 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-5 group-hover:animate-shine pointer-events-none" />
+              <div className={`absolute top-0 left-0 w-[3px] h-full ${
+                notif.type === 'match' ? 'bg-[#8B1538]' : notif.type === 'event' ? 'bg-[#D4AF37]' : 'bg-blue-400'
+              }`} />
+              <div className={`p-2 rounded-lg ${
+                notif.type === 'match' ? 'bg-[#8B1538]/10 text-[#8B1538]' : notif.type === 'event' ? 'bg-[#D4AF37]/10 text-[#D4AF37]' : 'bg-blue-400/10 text-blue-400'
+              }`}>
+                {notif.type === 'match' && <Sparkles size={16} className="text-[#D4AF37] fill-[#D4AF37]/30" />}
+                {notif.type === 'event' && <Calendar size={16} className="text-[#D4AF37]" />}
+                {notif.type !== 'match' && notif.type !== 'event' && <Bell size={16} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-serif font-black text-white leading-none mb-1">{notif.title}</h4>
+                  <button 
+                    onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
+                    className="text-[10px] text-gray-500 hover:text-white transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-300 leading-relaxed font-sans">{notif.message}</p>
+                <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest block mt-1.5">Enoviq Real-time • Live HUD</span>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
       
       {/* Background Ambience */}
       <div className="absolute inset-0 z-0 pointer-events-none">

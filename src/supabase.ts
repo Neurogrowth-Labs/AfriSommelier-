@@ -100,6 +100,42 @@ function getSeededData(tableName: string): any[] {
   return [];
 }
 
+interface MockSubscription {
+  channelName: string;
+  event: string;
+  filter: {
+    event?: string;
+    schema?: string;
+    table?: string;
+    filter?: string;
+  };
+  callback: (payload: any) => void;
+}
+
+export const mockSubscriptions: MockSubscription[] = [];
+
+export function triggerMockChannelEvent(table: string, eventType: 'INSERT' | 'UPDATE' | 'DELETE', record: any) {
+  const matched = mockSubscriptions.filter(s => {
+    const sTable = s.filter?.table;
+    return sTable === table;
+  });
+
+  matched.forEach(s => {
+    try {
+      s.callback({
+        schema: 'public',
+        table: table,
+        commit_timestamp: new Date().toISOString(),
+        eventType: eventType,
+        new: eventType !== 'DELETE' ? record : {},
+        old: eventType !== 'INSERT' ? record : {}
+      });
+    } catch (e) {
+      console.error("Error in mock real-time callback:", e);
+    }
+  });
+}
+
 class MockUpdateBuilder {
   tableName: string;
   payload: any;
@@ -130,7 +166,9 @@ class MockUpdateBuilder {
     const updated = data.map(item => {
       const matchesAll = this.filters.every(f => f(item));
       if (matchesAll) {
-        return { ...item, ...this.payload };
+        const updatedItem = { ...item, ...this.payload };
+        triggerMockChannelEvent(this.tableName, 'UPDATE', updatedItem);
+        return updatedItem;
       }
       return item;
     });
@@ -332,6 +370,9 @@ class MockQueryBuilder {
     }));
     this.data.unshift(...records);
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
+    if (records.length > 0) {
+      triggerMockChannelEvent(this.tableName, 'INSERT', records[0]);
+    }
     return { data: records, error: null };
   }
 
@@ -341,12 +382,15 @@ class MockQueryBuilder {
       const idx = this.data.findIndex(x => x.id === r.id);
       if (idx !== -1) {
         this.data[idx] = { ...this.data[idx], ...r };
+        triggerMockChannelEvent(this.tableName, 'UPDATE', this.data[idx]);
       } else {
-        this.data.unshift({
+        const item = {
           id: r.id || crypto.randomUUID(),
           created_at: new Date().toISOString(),
           ...r
-        });
+        };
+        this.data.unshift(item);
+        triggerMockChannelEvent(this.tableName, 'INSERT', item);
       }
     });
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
@@ -364,14 +408,40 @@ class MockQueryBuilder {
 
 class MockChannel {
   name: string;
+  onCallbacks: Array<{ event: string; filter: any; callback: (payload: any) => void }> = [];
+  presenceStateData: Record<string, any> = {};
+
   constructor(name: string) {
     this.name = name;
   }
-  on(event: string, filter: any, callback: () => void) {
+
+  on(event: string, filter: any, callback: (payload: any) => void) {
+    this.onCallbacks.push({ event, filter, callback });
     return this;
   }
-  subscribe() {
+
+  subscribe(callback?: (status: string) => void) {
+    for (const cb of this.onCallbacks) {
+      mockSubscriptions.push({
+        channelName: this.name,
+        event: cb.event,
+        filter: cb.filter || {},
+        callback: cb.callback
+      });
+    }
+    if (callback) {
+      setTimeout(() => callback('SUBSCRIBED'), 10);
+    }
     return this;
+  }
+
+  track(state: any) {
+    this.presenceStateData[state.user_id || 'me'] = state;
+    return Promise.resolve();
+  }
+
+  presenceState() {
+    return this.presenceStateData;
   }
 }
 
@@ -870,4 +940,11 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const logout = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+};
+
+export const notifyUser = (type: 'match' | 'event' | 'info', title: string, message: string) => {
+  const event = new CustomEvent('enoviq_notification', {
+    detail: { type, title, message }
+  });
+  window.dispatchEvent(event);
 };
