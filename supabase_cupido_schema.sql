@@ -116,6 +116,19 @@ create table if not exists public.cupido_event_registrations (
   unique (user_id, event_id)
 );
 
+-- 2.7 Cupido AI Scans
+-- Stores scanned wine bottles, restaurant menus, or lists
+create table if not exists public.scans (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users on delete cascade,
+  timestamp bigint not null,
+  mode text not null check (mode in ('label', 'menu', 'winelist')),
+  preview_url text,
+  result jsonb not null,
+  barcode text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- =========================================================================
 -- 3. INDEX OPTIMIZATIONS (FOR SPEED)
 -- =========================================================================
@@ -230,6 +243,7 @@ create or replace trigger check_mutual_swipe_match
 alter publication supabase_realtime add table public.cupido_messages;
 alter publication supabase_realtime add table public.cupido_conversations;
 alter publication supabase_realtime add table public.cupido_profiles;
+alter publication supabase_realtime add table public.scans;
 
 -- Turn on Row-Level Security
 alter table public.cupido_profiles enable row level security;
@@ -239,6 +253,7 @@ alter table public.cupido_conversations enable row level security;
 alter table public.cupido_messages enable row level security;
 alter table public.cupido_virtual_dates enable row level security;
 alter table public.cupido_event_registrations enable row level security;
+alter table public.scans enable row level security;
 
 -- Create Security Access Policies
 -- Profiles: Users can edit their own sensory data, anyone authenticated can read basic match card profiles
@@ -305,6 +320,12 @@ create policy "Create own registrations"
   on public.cupido_event_registrations for insert
   to authenticated
   with check (auth.uid() = user_id);
+
+-- Scans: Manage own scanning histories
+create policy "Users can manage their own scans"
+  on public.scans for all
+  to authenticated
+  using (auth.uid() = user_id);
 
 -- =========================================================================
 -- 6. SEED DATA GENERATOR: TRANSLATED FROM TYPESCRIPT TO POSTGRESQL SQL

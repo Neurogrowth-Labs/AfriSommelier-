@@ -738,20 +738,9 @@ class DynamicQueryBuilder {
         }
         const response = await query;
         if (response && response.error) {
-          const errMsg = response.error.message || '';
           const errCode = response.error.code || '';
-          if (
-            errMsg.includes('Failed to fetch') || 
-            errMsg.includes('fetch') || 
-            errMsg.includes('URL') ||
-            response.error.code === 'TypeError' ||
-            errCode === 'PGRST205' ||
-            errCode === '42P01' ||
-            errMsg.includes('Could not find the table') ||
-            errMsg.includes('relation') ||
-            errMsg.includes('does not exist')
-          ) {
-            console.warn(`[Supabase Error] Table missing or network failed on ${this.tableName}, hot-swapping to dynamic fallback DB.`, response.error);
+          if (errCode !== 'PGRST116') {
+            console.warn(`[Supabase Error] Query failed on table ${this.tableName} (code: ${errCode}), hot-swapping to dynamic fallback DB.`, response.error);
             return this.executeMock();
           }
         }

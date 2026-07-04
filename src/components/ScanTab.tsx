@@ -142,6 +142,38 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
   const [editingWine, setEditingWine] = useState<any>(null);
   const [barcodeResult, setBarcodeResult] = useState<string | null>(null);
 
+  // Live Camera states
+  const [useCamera, setUseCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let activeStream: MediaStream | null = null;
+    if (isScanning && useCamera) {
+      navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+          activeStream = stream;
+          setCameraStream(stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        })
+        .catch(err => {
+          console.warn("Camera access failed, falling back to file upload:", err);
+          setCameraError(err.message || "Camera access denied");
+          setUseCamera(false);
+        });
+    }
+
+    return () => {
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+      }
+      setCameraStream(null);
+    };
+  }, [isScanning, useCamera]);
+
   // Advanced Enterprise Scanning Settings
   const [settings, setSettings] = useState({
     denoising: true,
@@ -324,17 +356,32 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
     }, stages.length * 850 + 100);
   };
 
-  // Load scan history on change or on Mount
+  // Load scan history and subscribe to real-time database updates
   useEffect(() => {
     const fetchHistory = async () => {
       try {
         const history = await getScanHistory();
         setScanHistory(history);
       } catch (err) {
-        console.error("IndexedDB error loading history:", err);
+        console.error("Error loading scan history:", err);
       }
     };
     fetchHistory();
+
+    // Subscribe to real-time scan events on the Supabase backend database
+    const channel = supabase.channel('scans-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scans' },
+        () => {
+          fetchHistory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [scanResult]);
 
   const getWineForBarcode = (code: string) => {
@@ -434,13 +481,7 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Trigger haptic click
-    triggerHaptics(true);
-
+  const processImageContent = async (processedBase64: string, processedUrl: string) => {
     setIsScanning(false);
     setIsProcessing(true);
     setActiveStageIndex(0);
@@ -457,11 +498,6 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
     }, 1100);
 
     try {
-      // 1. Client-side Image Preprocessing using Canvas API
-      // Converts to high-contrast grayscale to significantly increase OCR scan accuracy
-      const { processedBase64, processedUrl } = await preprocessImage(file);
-      setPreviewUrl(processedUrl);
-
       // 2. Barcode & QR recognition using ZXing Library
       const decodedCode = await decodeBarcodeOrQR(processedUrl);
       if (decodedCode) {
@@ -621,12 +657,68 @@ Structure your JSON response exactly like this:
       await saveScanToCache({
         timestamp: Date.now(),
         mode: scanMode,
-        previewUrl: previewUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop",
+        previewUrl: processedUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop",
         result: fallbackResult
       });
     } finally {
       clearInterval(interval);
       setIsProcessing(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Trigger haptic click
+    triggerHaptics(true);
+
+    try {
+      const { processedBase64, processedUrl } = await preprocessImage(file);
+      setPreviewUrl(processedUrl);
+      await processImageContent(processedBase64, processedUrl);
+    } catch (err) {
+      console.error("File preprocessing failed:", err);
+    }
+  };
+
+  const handleCameraCapture = async () => {
+    if (!videoRef.current) return;
+    triggerHaptics(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      const video = videoRef.current;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // High-contrast processing identical to file preprocessing
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          gray = 1.4 * (gray - 128) + 128;
+          if (gray < 0) gray = 0;
+          if (gray > 255) gray = 255;
+          data[i] = gray;
+          data[i + 1] = gray;
+          data[i + 2] = gray;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        
+        const processedUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const processedBase64 = processedUrl.split(',')[1];
+        setPreviewUrl(processedUrl);
+        await processImageContent(processedBase64, processedUrl);
+      }
+    } catch (err) {
+      console.error("Camera capture failed:", err);
     }
   };
 
@@ -726,24 +818,33 @@ Structure your JSON response exactly like this:
 
             {/* Interactive Target Interface Container */}
             <div className="relative w-64 h-72 border border-white/10 rounded-2xl mx-auto flex flex-col items-center justify-center overflow-hidden bg-black/40 backdrop-blur-sm shadow-[0_12px_40px_rgba(0,0,0,0.8)]">
+              {useCamera && cameraStream ? (
+                <video 
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : null}
+
               {/* Corner brackets */}
-              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-[#C8A24A] rounded-tl-lg"></div>
-              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-[#C8A24A] rounded-tr-lg"></div>
-              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-[#C8A24A] rounded-bl-lg"></div>
-              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-[#C8A24A] rounded-br-lg"></div>
+              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-[#C8A24A] rounded-tl-lg z-10"></div>
+              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-[#C8A24A] rounded-tr-lg z-10"></div>
+              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-[#C8A24A] rounded-bl-lg z-10"></div>
+              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-[#C8A24A] rounded-br-lg z-10"></div>
 
               {/* Animated Scan Line */}
               <motion.div 
                 animate={{ y: [-110, 110, -110] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[90%] h-0.5 bg-gradient-to-r from-transparent via-[#C8A24A] to-transparent shadow-[0_0_12px_#C8A24A]"
+                className="absolute w-[90%] h-0.5 bg-gradient-to-r from-transparent via-[#C8A24A] to-transparent shadow-[0_0_12px_#C8A24A] z-10"
               />
 
-              <div className="text-center z-10 p-4 pointer-events-none">
+              <div className="text-center z-10 p-4 pointer-events-none bg-black/40 rounded-xl backdrop-blur-[1px]">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-[#C8A24A] mb-1 animate-pulse">
-                  System Ready
+                  {useCamera && cameraStream ? 'Camera Stream Live' : 'System Ready'}
                 </p>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-200">
                   {scanMode === 'label' && 'Align wine label here'}
                   {scanMode === 'menu' && 'Align restaurant dishes'}
                   {scanMode === 'winelist' && 'Align wine menu list'}
@@ -857,7 +958,7 @@ Structure your JSON response exactly like this:
               </div>
             </div>
 
-            {/* Custom File Upload */}
+            {/* Custom File Upload or Live Camera Capture */}
             <div className="flex flex-col items-center gap-3">
               <input 
                 type="file" 
@@ -866,13 +967,46 @@ Structure your JSON response exactly like this:
                 ref={fileInputRef}
                 onChange={handleFileUpload}
               />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#C6A96B] to-[#b39556] text-black font-bold text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-[0_8px_30px_rgba(198,169,107,0.2)]"
-              >
-                <ImageIcon size={14} />
-                Upload Bottle or Menu Image
-              </button>
+              {useCamera ? (
+                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                  <button 
+                    onClick={handleCameraCapture}
+                    className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-[#C8A24A] to-[#b39556] text-black font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_8px_30px_rgba(200,162,74,0.3)] animate-pulse cursor-pointer"
+                  >
+                    <Wine size={16} />
+                    Capture & Scan Now
+                  </button>
+                  <button 
+                    onClick={() => {
+                      triggerHaptics(true);
+                      setUseCamera(false);
+                    }}
+                    className="text-xs text-gray-400 hover:text-white underline font-mono cursor-pointer"
+                  >
+                    Switch to Photo Upload
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-6 py-3.5 rounded-full bg-gradient-to-r from-[#C6A96B] to-[#b39556] text-black font-bold text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_8px_30px_rgba(198,169,107,0.2)] cursor-pointer"
+                  >
+                    <ImageIcon size={14} />
+                    Upload Bottle or Menu Image
+                  </button>
+                  <button 
+                    onClick={() => {
+                      triggerHaptics(true);
+                      setUseCamera(true);
+                    }}
+                    className="text-xs text-[#C8A24A] hover:text-[#e4be63] font-bold font-mono tracking-wider flex items-center gap-1 bg-[#C8A24A]/10 px-3 py-1.5 rounded-lg border border-[#C8A24A]/10 cursor-pointer"
+                  >
+                    <Wine size={12} />
+                    Use Live Device Camera
+                  </button>
+                </div>
+              )}
               <span className="text-[10px] text-gray-500 font-mono">
                 Supports real-time vision parsing & matching
               </span>

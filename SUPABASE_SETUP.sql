@@ -114,6 +114,18 @@ CREATE TABLE IF NOT EXISTS news (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Scans Table (AI Sommelier Scans)
+CREATE TABLE IF NOT EXISTS scans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  timestamp BIGINT,
+  mode TEXT NOT NULL CHECK (mode IN ('label', 'menu', 'winelist')),
+  preview_url TEXT,
+  result JSONB NOT NULL,
+  barcode TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert some dummy data for the search
 INSERT INTO wines (name, region, grape, vintage, price, image, notes, rating)
 VALUES 
@@ -142,6 +154,7 @@ ALTER TABLE consumption ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
 
 -- =========================================
 -- 3. Create RLS Policies
@@ -196,6 +209,11 @@ DROP POLICY IF EXISTS "Anyone can read news" ON news;
 CREATE POLICY "Anyone can read news" ON news
   FOR SELECT USING (true);
 
+-- Scans Policies
+DROP POLICY IF EXISTS "Users can manage their own scans" ON scans;
+CREATE POLICY "Users can manage their own scans" ON scans
+  FOR ALL USING (auth.uid() = user_id);
+
 -- =========================================
 -- 4. Auto-Create Profile on Signup Trigger
 -- =========================================
@@ -221,6 +239,6 @@ CREATE TRIGGER on_auth_user_created
 -- =========================================
 BEGIN;
   DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews, news;
+  CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews, news, scans;
 COMMIT;
 
