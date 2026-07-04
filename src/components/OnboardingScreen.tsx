@@ -95,9 +95,48 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
+      const emailName = user.email ? user.email.split('@')[0] : 'Connoisseur';
+      const cleanFirstName = emailName.split(/[._-]/).map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      // Determine cupido values
+      let personality: 'The Collector' | 'The Connoisseur' | 'The Avant-Garde Sommelier' | 'The Naturalist Rebel' = 'The Connoisseur';
+      if (answers.identity === 'investor') {
+        personality = 'The Collector';
+      } else if (answers.identity === 'explorer') {
+        personality = 'The Naturalist Rebel';
+      } else if (answers.identity === 'hospitality') {
+        personality = 'The Avant-Garde Sommelier';
+      } else if (answers.identity === 'dining') {
+        personality = 'The Connoisseur';
+      }
+
+      const wineTypeMap: Record<string, string> = {
+        explorer: 'Heritage Wine Explorer',
+        dining: 'Fine Dining Connoisseur',
+        investor: 'Prestige Wine Collector',
+        hospitality: 'Elite Sommelier'
+      };
+      const wineType = wineTypeMap[answers.identity] || 'Wine Enthusiast';
+
+      // Affinities map 0-100
+      const oldWorldAffinity = Math.round(sliders.fruityEarthy); // earthy -> old world
+      const boldRedsAffinity = Math.round(sliders.lightFull); // full -> bold red
+      const luxuryDiningAffinity = answers.interests.includes('culinary') || answers.identity === 'dining' ? 95 : 60;
+      const adventureAffinity = answers.interests.includes('travel') || answers.identity === 'explorer' ? 90 : 55;
+
+      // Unsplash avatar placeholders based on answers.identity or random
+      const avatarUrlMap: Record<string, string> = {
+        explorer: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop',
+        dining: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
+        investor: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=800&auto=format&fit=crop',
+        hospitality: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop'
+      };
+      const avatarUrl = avatarUrlMap[answers.identity] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop';
+
       const { error } = await supabase.from('profiles').upsert({
         id: user.id,
         email: user.email,
+        first_name: cleanFirstName,
         identity: answers.identity,
         flavors: answers.flavors,
         regions: answers.regions,
@@ -105,6 +144,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         sweet_dry: sliders.sweetDry.toString(),
         light_full: sliders.lightFull.toString(),
         fruity_earthy: sliders.fruityEarthy.toString(),
+        avatar_url: avatarUrl,
         taste_dna: {
            Boldness: sliders.lightFull,
            Tannin: 50,
@@ -119,6 +159,27 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       if (error) {
         console.error("Error saving profile:", error);
       }
+
+      // Automatically propagate profile to Cupido AI dating profiles table for instant sync!
+      const { error: cupidoErr } = await supabase.from('cupido_profiles').upsert({
+        id: user.id,
+        full_name: cleanFirstName,
+        photo_url: avatarUrl,
+        wine_type: wineType,
+        personality: personality,
+        old_world_affinity: oldWorldAffinity,
+        bold_reds_affinity: boldRedsAffinity,
+        luxury_dining_affinity: luxuryDiningAffinity,
+        adventure_affinity: adventureAffinity,
+        favorite_wines: answers.flavors.length > 0 ? answers.flavors : ['Pinot Noir', 'Syrah'],
+        favorite_experiences: answers.interests.length > 0 ? answers.interests : ['Tasting Tours', 'Fine Dining'],
+        location_name: 'Stellenbosch, South Africa'
+      }, { onConflict: 'id' });
+
+      if (cupidoErr) {
+        console.error("Error saving Cupido profile:", cupidoErr);
+      }
+
       // Skip the Auth step if logged in
       setStep(8);
     } catch (e) {

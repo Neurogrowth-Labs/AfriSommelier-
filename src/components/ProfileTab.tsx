@@ -127,6 +127,14 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
       
       try {
         await supabase.from('profiles').update({ taste_dna: tasteDNA }).eq('id', user.id);
+        
+        // Propagate taste DNA to Cupido profile affinities
+        const oldWorldAffinity = Math.round(tasteDNA.Earthiness);
+        const boldRedsAffinity = Math.round(tasteDNA.Boldness);
+        await supabase.from('cupido_profiles').update({
+          old_world_affinity: oldWorldAffinity,
+          bold_reds_affinity: boldRedsAffinity
+        }).eq('id', user.id);
       } catch (err) {
         console.error("Error auto-saving taste DNA", err);
       }
@@ -166,6 +174,24 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
       }).eq('id', user.id);
       
       if (error) throw error;
+
+      // Determine cupido wine personality based on updated identity selection
+      let personality: 'The Collector' | 'The Connoisseur' | 'The Avant-Garde Sommelier' | 'The Naturalist Rebel' = 'The Connoisseur';
+      const cleanIdentity = (editIdentity || '').toLowerCase();
+      if (cleanIdentity.includes('collector') || cleanIdentity.includes('investor')) {
+        personality = 'The Collector';
+      } else if (cleanIdentity.includes('explorer')) {
+        personality = 'The Naturalist Rebel';
+      } else if (cleanIdentity.includes('professional') || cleanIdentity.includes('sommelier') || cleanIdentity.includes('hospitality')) {
+        personality = 'The Avant-Garde Sommelier';
+      } else if (cleanIdentity.includes('dining')) {
+        personality = 'The Connoisseur';
+      }
+
+      await supabase.from('cupido_profiles').update({
+        full_name: editFirstName,
+        personality: personality
+      }).eq('id', user.id);
       
       setFirstName(editFirstName);
       setIdentity(editIdentity);
@@ -188,6 +214,9 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
           await supabase.from('profiles').update({ avatar_url: base64String }).eq('id', user.id);
+          
+          // Also sync avatar to Cupido profile photo URL
+          await supabase.from('cupido_profiles').update({ photo_url: base64String }).eq('id', user.id);
        } catch (err) {
           console.error("Error saving avatar URL:", err);
        }
