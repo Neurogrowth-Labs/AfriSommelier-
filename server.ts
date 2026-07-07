@@ -5,20 +5,24 @@ import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
-  app.use(express.json());
+  app.use(express.json({ limit: "10mb" }));
 
   // API Route for AI Chat (Supports OpenRouter or falls back to Gemini)
   app.post("/api/chat", async (req, res) => {
     try {
       const payload = req.body;
-      const openRouterKey = process.env.OPENROUTER_API_KEY || "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";
+      if (!payload || !Array.isArray(payload.messages)) {
+        return res.status(400).json({ error: "Request body must include a messages array." });
+      }
+
+      const openRouterKey = process.env.OPENROUTER_API_KEY;
 
       if (openRouterKey) {
         const apiPayload = {
           ...payload,
-          model: payload.model || "google/gemini-3.5-flash"
+          model: payload.model || process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini"
         };
         // Use OpenRouter if key is available
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -27,7 +31,7 @@ async function startServer() {
             "Authorization": `Bearer ${openRouterKey}`,
             "Content-Type": "application/json",
             "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-            "X-Title": "AI Studio Application"
+            "X-Title": process.env.APP_NAME || "AfriSommelier"
           },
           body: JSON.stringify(apiPayload)
         });
@@ -37,7 +41,8 @@ async function startServer() {
           return res.json(data);
         }
         
-        console.warn(`OpenRouter failed with status ${response.status}. Falling back to Gemini.`);
+        const body = await response.text();
+        console.warn(`OpenRouter failed with status ${response.status}. Falling back to Gemini. ${body.slice(0, 500)}`);
       }
 
       // Fallback to Gemini API
@@ -102,7 +107,7 @@ async function startServer() {
       }
 
       // Route based on requested model family if specified, otherwise default to flash
-      const model = payload.model && payload.model.includes('opus') ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
+      const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
       const response = await ai.models.generateContent({
         model,
@@ -124,7 +129,7 @@ async function startServer() {
       res.json(formattedResponse);
     } catch (error: any) {
       console.error("API Chat Error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message || "AI service request failed." });
     }
   });
 

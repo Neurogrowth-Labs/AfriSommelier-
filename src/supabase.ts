@@ -140,6 +140,7 @@ class MockUpdateBuilder {
   tableName: string;
   payload: any;
   filters: ((item: any) => boolean)[] = [];
+  shouldReturnSingle = false;
 
   constructor(tableName: string, payload: any) {
     this.tableName = tableName;
@@ -148,6 +149,15 @@ class MockUpdateBuilder {
 
   eq(column: string, value: any) {
     this.filters.push((item: any) => item[column] === value);
+    return this;
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
     return this;
   }
 
@@ -173,13 +183,15 @@ class MockUpdateBuilder {
       return item;
     });
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(updated));
-    return { data: updated, error: null };
+    const changed = updated.filter(item => this.filters.every(f => f(item)));
+    return { data: this.shouldReturnSingle ? changed[0] || null : changed, error: null };
   }
 }
 
 class MockDeleteBuilder {
   tableName: string;
   filters: ((item: any) => boolean)[] = [];
+  shouldReturnSingle = false;
 
   constructor(tableName: string) {
     this.tableName = tableName;
@@ -187,6 +199,15 @@ class MockDeleteBuilder {
 
   eq(column: string, value: any) {
     this.filters.push((item: any) => item[column] === value);
+    return this;
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
     return this;
   }
 
@@ -202,12 +223,92 @@ class MockDeleteBuilder {
         data = JSON.parse(stored);
       } catch {}
     }
+    const deleted: any[] = [];
     const rem = data.filter(item => {
       const matchesAll = this.filters.every(f => f(item));
+      if (matchesAll) {
+        deleted.push(item);
+        triggerMockChannelEvent(this.tableName, 'DELETE', item);
+      }
       return !matchesAll;
     });
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(rem));
-    return { data: rem, error: null };
+    return { data: this.shouldReturnSingle ? deleted[0] || null : deleted, error: null };
+  }
+}
+
+class MockInsertBuilder {
+  tableName: string;
+  rows: any[];
+  shouldReturnSingle = false;
+
+  constructor(tableName: string, rowOrRows: any) {
+    this.tableName = tableName;
+    this.rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
+    return this;
+  }
+
+  then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
+    return this.execute().then(onfulfilled, onrejected);
+  }
+
+  async execute() {
+    const stored = localStorage.getItem(`mock_db_${this.tableName}`);
+    let data: any[] = [];
+    if (stored) {
+      try {
+        data = JSON.parse(stored);
+      } catch {}
+    }
+
+    const records = this.rows.map(r => ({
+      id: r.id || crypto.randomUUID(),
+      created_at: r.created_at || new Date().toISOString(),
+      ...r
+    }));
+    data.unshift(...records);
+    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(data));
+    records.forEach(record => triggerMockChannelEvent(this.tableName, 'INSERT', record));
+    return { data: this.shouldReturnSingle ? records[0] || null : records, error: null };
+  }
+}
+
+class MockUpsertBuilder extends MockInsertBuilder {
+  async execute() {
+    const stored = localStorage.getItem(`mock_db_${this.tableName}`);
+    let data: any[] = [];
+    if (stored) {
+      try {
+        data = JSON.parse(stored);
+      } catch {}
+    }
+
+    const records = this.rows.map(r => {
+      const idx = data.findIndex(x => x.id === r.id);
+      if (idx !== -1) {
+        data[idx] = { ...data[idx], ...r };
+        triggerMockChannelEvent(this.tableName, 'UPDATE', data[idx]);
+        return data[idx];
+      }
+      const item = {
+        id: r.id || crypto.randomUUID(),
+        created_at: r.created_at || new Date().toISOString(),
+        ...r
+      };
+      data.unshift(item);
+      triggerMockChannelEvent(this.tableName, 'INSERT', item);
+      return item;
+    });
+    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(data));
+    return { data: this.shouldReturnSingle ? records[0] || null : records, error: null };
   }
 }
 
@@ -361,40 +462,12 @@ class MockQueryBuilder {
     return { data: result, error: null };
   }
 
-  async insert(rowOrRows: any) {
-    const rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
-    const records = rows.map(r => ({
-      id: r.id || crypto.randomUUID(),
-      created_at: r.created_at || new Date().toISOString(),
-      ...r
-    }));
-    this.data.unshift(...records);
-    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
-    if (records.length > 0) {
-      triggerMockChannelEvent(this.tableName, 'INSERT', records[0]);
-    }
-    return { data: records, error: null };
+  insert(rowOrRows: any) {
+    return new MockInsertBuilder(this.tableName, rowOrRows);
   }
 
-  async upsert(rowOrRows: any) {
-    const rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
-    rows.forEach(r => {
-      const idx = this.data.findIndex(x => x.id === r.id);
-      if (idx !== -1) {
-        this.data[idx] = { ...this.data[idx], ...r };
-        triggerMockChannelEvent(this.tableName, 'UPDATE', this.data[idx]);
-      } else {
-        const item = {
-          id: r.id || crypto.randomUUID(),
-          created_at: new Date().toISOString(),
-          ...r
-        };
-        this.data.unshift(item);
-        triggerMockChannelEvent(this.tableName, 'INSERT', item);
-      }
-    });
-    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
-    return { data: rows, error: null };
+  upsert(rowOrRows: any) {
+    return new MockUpsertBuilder(this.tableName, rowOrRows);
   }
 
   update(row: any) {
