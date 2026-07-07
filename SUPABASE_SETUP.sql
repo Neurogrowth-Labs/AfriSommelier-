@@ -126,23 +126,8 @@ CREATE TABLE IF NOT EXISTS scans (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Insert some dummy data for the search
-INSERT INTO wines (name, region, grape, vintage, price, image, notes, rating)
-VALUES 
-('Meerlust Rubicon', 'Stellenbosch', 'Cabernet Sauvignon', '2018', 'R 500', 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=400&auto=format&fit=crop', 'A classic Stellenbosch Bordeaux blend with notes of cassis and cedar.', 4.5),
-('Vilafonté Series C', 'Paarl', 'Cabernet Sauvignon', '2019', 'R 1200', 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop', 'Elegant and structured, bursting with dark fruit.', 4.8),
-('Ataraxia Chardonnay', 'Hemel-en-Aarde', 'Chardonnay', '2021', 'R 350', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400&auto=format&fit=crop', 'Crisp, mineral-driven Chardonnay from the cool Hemel-en-Aarde valley.', 4.6),
-('Kanonkop Pinotage', 'Stellenbosch', 'Pinotage', '2019', 'R 450', 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?q=80&w=400&auto=format&fit=crop', 'The benchmark for Pinotage. Rich red fruit and subtle oak.', 4.7),
-('Sadie Family Columella', 'Swartland', 'Shiraz', '2020', 'R 1200', 'https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?q=80&w=400&auto=format&fit=crop', 'Spectacular Mediterranean-style red blend from Swartland.', 4.9)
-ON CONFLICT (name) DO NOTHING;
-
--- Insert some dummy data for news
-INSERT INTO news (title, category, image, description)
-VALUES 
-('Global Supply Shift Shapes Upcoming Vintages', 'Global News', 'https://images.unsplash.com/photo-1596758410228-568ea46a9b51?q=80&w=600&auto=format&fit=crop', 'Experts predict a rise in alternative varietals as traditional regions adapt to climate shifts this year.'),
-('South Africa''s Cap Classique Renaissance', 'Local Spotlight', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=600&auto=format&fit=crop', 'Stellenbosch producers are gaining international acclaim for traditional method sparkling wines.'),
-('The Rise of Low-Intervention Wonders', 'Trend', 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop', 'Natural and biodynamic wines continue to see explosive growth among modern connoisseurs.')
-ON CONFLICT (title) DO NOTHING;
+-- Production schemas intentionally do not insert catalog or news records.
+-- Manage wines and articles through the admin dashboard or controlled migrations.
 
 -- =========================================
 -- 2. Enable Row Level Security (RLS)
@@ -242,3 +227,44 @@ BEGIN;
   CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews, news, scans;
 COMMIT;
 
+
+-- Production admin support inbox
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'Resolved')),
+  category TEXT NOT NULL CHECK (category IN ('Fraud Reporting', 'Sommelier Support', 'App Feedback', 'Wine Listing Error')),
+  reply TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Production promotion campaigns
+CREATE TABLE IF NOT EXISTS promotions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  wine_name TEXT NOT NULL,
+  discount TEXT NOT NULL,
+  target TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  image TEXT,
+  description TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins manage support tickets" ON support_tickets
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')));
+
+CREATE POLICY "Admins manage promotions" ON promotions
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')));
+
+ALTER PUBLICATION supabase_realtime ADD TABLE support_tickets;
+ALTER PUBLICATION supabase_realtime ADD TABLE promotions;
