@@ -52,15 +52,11 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          if (user.email === 'simao@neurogrowthlabs.co.za') {
-            setIsOnboarding(false);
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          if (!data && error?.code === 'PGRST116') {
+             setIsOnboarding(true);
           } else {
-            const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (!data && error?.code === 'PGRST116') {
-               setIsOnboarding(true);
-            } else {
-               setIsOnboarding(false);
-            }
+             setIsOnboarding(false);
           }
         } else {
           setIsOnboarding(true);

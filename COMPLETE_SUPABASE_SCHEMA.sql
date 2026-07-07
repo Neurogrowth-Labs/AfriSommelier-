@@ -1,843 +1,331 @@
--- =========================================================================
---               ENOVIQ AI SOMMELIER & CUPIDO: COMPLETE SUPABASE BACKEND CODE
--- =========================================================================
--- Description: Complete, production-ready PostgreSQL schema, indexes, RLS
---              (Row-Level Security) policies, dynamic compatibility 
---              algorithms, triggers, and real-time replication optimized for Supabase.
--- Compatibility: Postgres 15+ / Supabase Auth
--- Usage: Copy and paste this entire script into your Supabase SQL Editor and run it.
--- =========================================================================
+-- AfriSommelier / Enoviq complete Supabase backend schema
+-- Paste this entire file into the Supabase SQL editor for a clean production backend.
+-- It is idempotent and intentionally does not insert mock/demo data.
 
--- =========================================================================
--- 1. EXTENSIONS & ENUMS SETUP
--- =========================================================================
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+create extension if not exists pgcrypto;
 
--- Create Schema Enums for Cupido AI Dating
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'wine_personality') THEN
-    CREATE TYPE wine_personality AS ENUM (
-      'The Collector', 
-      'The Connoisseur', 
-      'The Avant-Garde Sommelier', 
-      'The Naturalist Rebel'
-    );
-  END IF;
-END
+-- -----------------------------------------------------------------------------
+-- Shared helpers
+-- -----------------------------------------------------------------------------
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
 $$;
 
--- =========================================================================
--- 2. CORE DATABASE TABLES
--- =========================================================================
-
--- 2.1 Profiles Table
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT,
-  first_name TEXT,
-  identity TEXT,
-  flavors JSONB,
-  regions JSONB,
-  interests JSONB,
-  sweet_dry TEXT,
-  light_full TEXT,
-  fruity_earthy TEXT,
-  location TEXT,
-  avatar_url TEXT,
-  taste_dna JSONB,
-  role TEXT DEFAULT 'explorer', -- 'explorer' or 'super_admin'
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+-- -----------------------------------------------------------------------------
+-- Core tables
+-- -----------------------------------------------------------------------------
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text unique,
+  first_name text,
+  identity text,
+  role text not null default 'explorer' check (role in ('explorer', 'lead_sommelier', 'admin', 'super_admin', 'suspended')),
+  flavors jsonb default '[]'::jsonb,
+  regions jsonb default '[]'::jsonb,
+  interests jsonb default '[]'::jsonb,
+  sweet_dry text,
+  light_full text,
+  fruity_earthy text,
+  location text,
+  avatar_url text,
+  taste_dna jsonb default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2.2 Wines Table
-CREATE TABLE IF NOT EXISTS public.wines (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT UNIQUE,
-  region TEXT,
-  grape TEXT,
-  vintage TEXT,
-  price TEXT,
-  image TEXT,
-  notes TEXT,
-  rating NUMERIC,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.wines (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  producer text,
+  region text,
+  country text default 'South Africa',
+  grape text,
+  vintage text,
+  price text,
+  image text,
+  notes text,
+  rating numeric,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2.3 Cellar Table (Personal Cellar Inventory)
-CREATE TABLE IF NOT EXISTS public.cellar (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_id UUID REFERENCES public.wines(id) ON DELETE SET NULL,
-  wine_name TEXT NOT NULL,
-  vintage TEXT,
-  region TEXT,
-  grape TEXT,
-  quantity INTEGER DEFAULT 1,
-  notes TEXT,
-  image_url TEXT,
-  scanned_barcode TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.cellar (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  vintage text,
+  region text,
+  grape text,
+  status text,
+  status_color text,
+  image text,
+  rating numeric,
+  awards text,
+  price text,
+  abv text,
+  calories_per_glass numeric,
+  is_organic boolean default false,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2.4 Wishlist Table
-CREATE TABLE IF NOT EXISTS public.wishlist (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_id UUID REFERENCES public.wines(id) ON DELETE CASCADE,
-  wine_name TEXT NOT NULL,
-  vintage TEXT,
-  region TEXT,
-  grape TEXT,
-  image_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, wine_id)
+create table if not exists public.wishlist (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  vintage text,
+  region text,
+  image text,
+  price text,
+  created_at timestamptz not null default now()
 );
 
--- 2.5 Consumption Logs Table (Glasses Drank Tracking)
-CREATE TABLE IF NOT EXISTS public.consumption (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_name TEXT NOT NULL,
-  vintage TEXT,
-  region TEXT,
-  grape TEXT,
-  glasses INTEGER DEFAULT 1,
-  calories INTEGER DEFAULT 120,
-  date DATE DEFAULT CURRENT_DATE,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.consumption (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  wine_name text,
+  region text,
+  grape text,
+  calories numeric,
+  date timestamptz default now(),
+  rating numeric,
+  notes text,
+  occasion text,
+  created_at timestamptz not null default now()
 );
 
--- 2.6 Events Table (VIP Wine Tastings & Masterclasses)
-CREATE TABLE IF NOT EXISTS public.events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  date TEXT NOT NULL,
-  time TEXT,
-  location TEXT,
-  wine_pairings JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  event_date timestamptz not null,
+  time text,
+  location text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2.7 Reviews Table (Community Tasting Notes & Star Ratings)
-CREATE TABLE IF NOT EXISTS public.reviews (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_id UUID REFERENCES public.wines(id) ON DELETE CASCADE,
-  rating NUMERIC CHECK (rating >= 1 AND rating <= 5),
-  comment TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  wine_name text not null,
+  rating numeric,
+  review_text text,
+  created_at timestamptz not null default now()
 );
 
--- 2.8 News Table (Wine Intelligence & Trending Headlines)
-CREATE TABLE IF NOT EXISTS public.news (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT UNIQUE,
-  category TEXT,
-  image TEXT,
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.news (
+  id uuid primary key default gen_random_uuid(),
+  title text not null unique,
+  category text,
+  image text,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2.9 AI Sommelier Scans Table
-CREATE TABLE IF NOT EXISTS public.scans (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  timestamp BIGINT,
-  mode TEXT NOT NULL CHECK (mode IN ('label', 'menu', 'winelist')),
-  preview_url TEXT,
-  result JSONB NOT NULL,
-  barcode TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+create table if not exists public.scans (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  timestamp bigint not null,
+  mode text not null check (mode in ('label', 'menu', 'winelist')),
+  preview_url text,
+  result jsonb not null,
+  barcode text,
+  created_at timestamptz not null default now()
 );
 
--- =========================================================================
--- 2.10 CUPIDO (AI DATING) TABLES
--- =========================================================================
-
--- Cupido Profiles
-CREATE TABLE IF NOT EXISTS public.cupido_profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  full_name TEXT NOT NULL,
-  photo_url TEXT,
-  wine_type TEXT DEFAULT 'Wine Enthusiast',
-  personality wine_personality DEFAULT 'The Collector',
-  
-  -- Wine DNA components (Stored as integer percentages 0-100)
-  old_world_affinity INTEGER DEFAULT 50 CHECK (old_world_affinity >= 0 AND old_world_affinity <= 100),
-  bold_reds_affinity INTEGER DEFAULT 50 CHECK (bold_reds_affinity >= 0 AND bold_reds_affinity <= 100),
-  luxury_dining_affinity INTEGER DEFAULT 50 CHECK (luxury_dining_affinity >= 0 AND luxury_dining_affinity <= 100),
-  adventure_affinity INTEGER DEFAULT 50 CHECK (adventure_affinity >= 0 AND adventure_affinity <= 100),
-  
-  -- Metadata arrays
-  favorite_wines TEXT[] DEFAULT '{}'::TEXT[],
-  favorite_experiences TEXT[] DEFAULT '{}'::TEXT[],
-  location_name TEXT DEFAULT 'Cape Town, South Africa',
-  is_premium BOOLEAN DEFAULT FALSE,
-  
-  CONSTRAINT name_length CHECK (char_length(full_name) >= 2)
+-- -----------------------------------------------------------------------------
+-- Admin operations
+-- -----------------------------------------------------------------------------
+create table if not exists public.support_tickets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  email text not null,
+  subject text not null,
+  message text not null,
+  status text not null default 'Open' check (status in ('Open', 'Resolved')),
+  category text not null check (category in ('Fraud Reporting', 'Sommelier Support', 'App Feedback', 'Wine Listing Error')),
+  reply text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Cupido Swipes (Matchmaker State Machine)
-CREATE TABLE IF NOT EXISTS public.cupido_swipes (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  sender_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  receiver_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  swipe_type TEXT NOT NULL CHECK (swipe_type IN ('like', 'pass')),
-  
-  UNIQUE (sender_id, receiver_id)
+create table if not exists public.promotions (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  wine_name text not null,
+  discount text not null,
+  target text not null,
+  active boolean not null default true,
+  image text,
+  description text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Cupido Matches
-CREATE TABLE IF NOT EXISTS public.cupido_matches (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  user_one_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  user_two_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  compatibility_score INTEGER NOT NULL CHECK (compatibility_score >= 0 AND compatibility_score <= 100),
-  
-  UNIQUE (user_one_id, user_two_id)
+-- -----------------------------------------------------------------------------
+-- Cupido realtime social matching
+-- -----------------------------------------------------------------------------
+create table if not exists public.cupido_profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text not null,
+  photo_url text,
+  wine_type text,
+  personality text,
+  old_world_affinity integer default 50 check (old_world_affinity between 0 and 100),
+  bold_reds_affinity integer default 50 check (bold_reds_affinity between 0 and 100),
+  luxury_dining_affinity integer default 50 check (luxury_dining_affinity between 0 and 100),
+  adventure_affinity integer default 50 check (adventure_affinity between 0 and 100),
+  favorite_wines text[] default '{}',
+  favorite_experiences text[] default '{}',
+  location_name text,
+  is_premium boolean default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Cupido Conversations
-CREATE TABLE IF NOT EXISTS public.cupido_conversations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  match_id UUID REFERENCES public.cupido_matches(id) ON DELETE CASCADE NOT NULL,
-  last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+create table if not exists public.cupido_swipes (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  receiver_id uuid not null references public.cupido_profiles(id) on delete cascade,
+  swipe_type text not null check (swipe_type in ('like', 'pass')),
+  created_at timestamptz not null default now(),
+  unique (sender_id, receiver_id)
 );
 
--- Cupido Messages
-CREATE TABLE IF NOT EXISTS public.cupido_messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  conversation_id UUID REFERENCES public.cupido_conversations(id) ON DELETE CASCADE NOT NULL,
-  sender_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  content TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT FALSE
+create table if not exists public.cupido_matches (
+  id uuid primary key default gen_random_uuid(),
+  user_one_id uuid not null references auth.users(id) on delete cascade,
+  user_two_id uuid not null references public.cupido_profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_one_id, user_two_id)
 );
 
--- Virtual Wine Dates (Synchronous guided tastings)
-CREATE TABLE IF NOT EXISTS public.cupido_virtual_dates (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  match_id UUID REFERENCES public.cupido_matches(id) ON DELETE CASCADE NOT NULL,
-  scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  selected_wine TEXT DEFAULT 'Kanonkop Pinotage',
-  current_round INTEGER DEFAULT 1 CHECK (current_round >= 1 AND current_round <= 4), -- 4 is completed!
-  shared_tasting_notes TEXT[] DEFAULT '{}'::TEXT[],
-  status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'active', 'completed', 'canceled'))
+create table if not exists public.cupido_conversations (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid references public.cupido_matches(id) on delete cascade,
+  user_one_id uuid not null references auth.users(id) on delete cascade,
+  user_two_id uuid not null references public.cupido_profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Cupido Event Registrations (Regional VIP ticket reservations)
-CREATE TABLE IF NOT EXISTS public.cupido_event_registrations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  user_id UUID REFERENCES public.cupido_profiles(id) ON DELETE CASCADE NOT NULL,
-  event_id TEXT NOT NULL, -- 'bordeaux' or 'cabernet' code
-  registration_code TEXT NOT NULL UNIQUE, -- EQ-###### format security ticket code
-  checked_in BOOLEAN DEFAULT FALSE,
-  
-  UNIQUE (user_id, event_id)
+create table if not exists public.cupido_messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid references public.cupido_conversations(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  message text not null,
+  created_at timestamptz not null default now()
 );
 
--- =========================================================================
--- 3. INDEX OPTIMIZATIONS (FOR SPEED & PERFORMANCE)
--- =========================================================================
-CREATE INDEX IF NOT EXISTS idx_cellar_user ON public.cellar(user_id);
-CREATE INDEX IF NOT EXISTS idx_wishlist_user ON public.wishlist(user_id);
-CREATE INDEX IF NOT EXISTS idx_consumption_user ON public.consumption(user_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_wine ON public.reviews(wine_id);
-CREATE INDEX IF NOT EXISTS idx_scans_user ON public.scans(user_id);
+create table if not exists public.cupido_virtual_dates (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid references public.cupido_matches(id) on delete cascade,
+  host_user_id uuid not null references auth.users(id) on delete cascade,
+  guest_user_id uuid references public.cupido_profiles(id) on delete set null,
+  scheduled_for timestamptz,
+  status text not null default 'scheduled' check (status in ('scheduled', 'active', 'completed', 'cancelled')),
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-CREATE INDEX IF NOT EXISTS idx_cupido_swipes_sender ON public.cupido_swipes(sender_id);
-CREATE INDEX IF NOT EXISTS idx_cupido_swipes_receiver ON public.cupido_swipes(receiver_id);
-CREATE INDEX IF NOT EXISTS idx_cupido_matches_users ON public.cupido_matches(user_one_id, user_two_id);
-CREATE INDEX IF NOT EXISTS idx_cupido_messages_conversation ON public.cupido_messages(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_cupido_messages_created_at ON public.cupido_messages(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_cupido_events_user ON public.cupido_event_registrations(user_id, event_id);
+create table if not exists public.cupido_event_registrations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  event_id text not null,
+  registration_code text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, event_id)
+);
 
--- =========================================================================
--- 4. BUSINESS LOGIC & COMPATIBILITY CALCULATION ALGORITHMS
--- =========================================================================
+-- -----------------------------------------------------------------------------
+-- Indexes
+-- -----------------------------------------------------------------------------
+create index if not exists profiles_role_idx on public.profiles(role);
+create index if not exists cellar_user_created_idx on public.cellar(user_id, created_at desc);
+create index if not exists wishlist_user_created_idx on public.wishlist(user_id, created_at desc);
+create index if not exists consumption_user_date_idx on public.consumption(user_id, date desc);
+create index if not exists events_user_event_date_idx on public.events(user_id, event_date);
+create index if not exists reviews_wine_created_idx on public.reviews(wine_name, created_at desc);
+create index if not exists scans_user_timestamp_idx on public.scans(user_id, timestamp desc);
+create index if not exists cupido_swipes_receiver_idx on public.cupido_swipes(receiver_id, swipe_type);
+create index if not exists cupido_event_registrations_user_idx on public.cupido_event_registrations(user_id);
 
--- 4.1 Taste Compatibility Match Score Calculator
--- Runs a multi-signal comparison on sensory dimensions
-CREATE OR REPLACE FUNCTION public.calculate_compatibility(
-  user_a UUID,
-  user_b UUID
-)
-RETURNS INTEGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  prof_a public.cupido_profiles;
-  prof_b public.cupido_profiles;
-  diff_old_world INTEGER;
-  diff_reds INTEGER;
-  diff_dining INTEGER;
-  diff_adventure INTEGER;
-  raw_score NUMERIC;
-BEGIN
-  -- Fetch profiles
-  SELECT * INTO prof_a FROM public.cupido_profiles WHERE id = user_a;
-  SELECT * INTO prof_b FROM public.cupido_profiles WHERE id = user_b;
-  
-  IF NOT FOUND OR prof_b IS NULL THEN
-    RETURN 75; -- Fallback baseline compatibility score
-  END IF;
+-- -----------------------------------------------------------------------------
+-- Updated-at triggers
+-- -----------------------------------------------------------------------------
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at before update on public.profiles for each row execute function public.set_updated_at();
+drop trigger if exists wines_set_updated_at on public.wines;
+create trigger wines_set_updated_at before update on public.wines for each row execute function public.set_updated_at();
+drop trigger if exists cellar_set_updated_at on public.cellar;
+create trigger cellar_set_updated_at before update on public.cellar for each row execute function public.set_updated_at();
+drop trigger if exists events_set_updated_at on public.events;
+create trigger events_set_updated_at before update on public.events for each row execute function public.set_updated_at();
+drop trigger if exists news_set_updated_at on public.news;
+create trigger news_set_updated_at before update on public.news for each row execute function public.set_updated_at();
+drop trigger if exists support_tickets_set_updated_at on public.support_tickets;
+create trigger support_tickets_set_updated_at before update on public.support_tickets for each row execute function public.set_updated_at();
+drop trigger if exists promotions_set_updated_at on public.promotions;
+create trigger promotions_set_updated_at before update on public.promotions for each row execute function public.set_updated_at();
+drop trigger if exists cupido_profiles_set_updated_at on public.cupido_profiles;
+create trigger cupido_profiles_set_updated_at before update on public.cupido_profiles for each row execute function public.set_updated_at();
+drop trigger if exists cupido_conversations_set_updated_at on public.cupido_conversations;
+create trigger cupido_conversations_set_updated_at before update on public.cupido_conversations for each row execute function public.set_updated_at();
+drop trigger if exists cupido_virtual_dates_set_updated_at on public.cupido_virtual_dates;
+create trigger cupido_virtual_dates_set_updated_at before update on public.cupido_virtual_dates for each row execute function public.set_updated_at();
 
-  -- Absolute differences between taste parameters
-  diff_old_world := ABS(prof_a.old_world_affinity - prof_b.old_world_affinity);
-  diff_reds      := ABS(prof_a.bold_reds_affinity - prof_b.bold_reds_affinity);
-  diff_dining    := ABS(prof_a.luxury_dining_affinity - prof_b.luxury_dining_affinity);
-  diff_adventure := ABS(prof_a.adventure_affinity - prof_b.adventure_affinity);
-
-  -- Weighted average variance offset
-  raw_score := 100 - ((diff_old_world + diff_reds + diff_dining + diff_adventure) / 4.0);
-  
-  -- Clamp range securely between 50% and 100%
-  RETURN GREATEST(50, LEAST(100, ROUND(raw_score)));
-END;
+-- -----------------------------------------------------------------------------
+-- Auth profile provisioning
+-- -----------------------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, first_name, role)
+  values (new.id, new.email, split_part(coalesce(new.email, ''), '@', 1), 'explorer')
+  on conflict (id) do update set email = excluded.email;
+  return new;
+end;
 $$;
 
--- 4.2 Auto Match & Conversation Creator Trigger Hook
--- Triggers whenever a swipe record is written, checking if a mutual LIKE is completed
-CREATE OR REPLACE FUNCTION public.process_swipe_match()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  mutual_exists BOOLEAN;
-  score INTEGER;
-  new_match_id UUID;
-BEGIN
-  -- Only evaluate if swipe was positive ('like')
-  IF new.swipe_type = 'like' THEN
-    SELECT EXISTS (
-      SELECT 1 FROM public.cupido_swipes
-      WHERE sender_id = new.receiver_id 
-        AND receiver_id = new.sender_id 
-        AND swipe_type = 'like'
-    ) INTO mutual_exists;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
 
-    -- If mutual love is verified, instantiate the Match and configure Conversation threads!
-    IF mutual_exists THEN
-      -- Calculate algorithmic taste match accuracy score
-      score := public.calculate_compatibility(new.sender_id, new.receiver_id);
+-- After creating your first account, run this in the SQL editor to bootstrap admin:
+-- update public.profiles set role = 'super_admin' where email = 'YOUR_ADMIN_EMAIL@example.com';
 
-      -- Maintain unique, ordered composite pairs
-      INSERT INTO public.cupido_matches (user_one_id, user_two_id, compatibility_score)
-      VALUES (
-        LEAST(new.sender_id, new.receiver_id),
-        GREATEST(new.sender_id, new.receiver_id),
-        score
-      )
-      ON CONFLICT (user_one_id, user_two_id) DO UPDATE
-        SET compatibility_score = EXCLUDED.compatibility_score
-      RETURNING id INTO new_match_id;
-
-      -- Instantiate default interactive real-time Chat room conversation box
-      INSERT INTO public.cupido_conversations (match_id)
-      VALUES (new_match_id)
-      ON CONFLICT DO NOTHING;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
+-- SECURITY DEFINER helper used by RLS policies to avoid recursive profile policy checks.
+create or replace function public.current_user_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid()
 $$;
 
--- Create Swipe Trigger
-DROP TRIGGER IF EXISTS check_mutual_swipe_match ON public.cupido_swipes;
-CREATE TRIGGER check_mutual_swipe_match
-  AFTER INSERT ON public.cupido_swipes
-  FOR EACH ROW EXECUTE FUNCTION public.process_swipe_match();
-
--- 4.3 Trigger to Auto-Create User Profiles on Auth Signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Insert into core profiles table
-  INSERT INTO public.profiles (id, email, first_name)
-  VALUES (new.id, new.email, split_part(new.email, '@', 1))
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Insert into cupido profiles table
-  INSERT INTO public.cupido_profiles (id, full_name, wine_type)
-  VALUES (new.id, split_part(new.email, '@', 1), 'Wine Explorer')
-  ON CONFLICT (id) DO NOTHING;
-
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Hook Trigger up to Supabase Auth tables
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-
--- =========================================================================
--- 5. ENABLE ROW-LEVEL SECURITY (RLS) FOR ALL TABLES
--- =========================================================================
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cellar ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.consumption ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wines ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.scans ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE public.cupido_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_swipes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_matches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_virtual_dates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cupido_event_registrations ENABLE ROW LEVEL SECURITY;
-
--- =========================================================================
--- 6. CREATE ROW-LEVEL SECURITY ACCESS POLICIES
--- =========================================================================
-
--- Profiles Policies
-DROP POLICY IF EXISTS "Users can manage their own profile" ON public.profiles;
-CREATE POLICY "Users can manage their own profile" ON public.profiles
-  FOR ALL USING (auth.uid() = id);
-
--- Cellar Policies
-DROP POLICY IF EXISTS "Users can manage their own cellar" ON public.cellar;
-CREATE POLICY "Users can manage their own cellar" ON public.cellar
-  FOR ALL USING (auth.uid() = user_id);
-
--- Wishlist Policies
-DROP POLICY IF EXISTS "Users can manage their own wishlist" ON public.wishlist;
-CREATE POLICY "Users can manage their own wishlist" ON public.wishlist
-  FOR ALL USING (auth.uid() = user_id);
-
--- Consumption Policies
-DROP POLICY IF EXISTS "Users can manage their own consumption logs" ON public.consumption;
-CREATE POLICY "Users can manage their own consumption logs" ON public.consumption
-  FOR ALL USING (auth.uid() = user_id);
-
--- Events Policies
-DROP POLICY IF EXISTS "Users can manage their own events" ON public.events;
-CREATE POLICY "Users can manage their own events" ON public.events
-  FOR ALL USING (auth.uid() = user_id);
-
--- Reviews Policies
-DROP POLICY IF EXISTS "Anyone can read reviews" ON public.reviews;
-CREATE POLICY "Anyone can read reviews" ON public.reviews
-  FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can add reviews" ON public.reviews;
-CREATE POLICY "Users can add reviews" ON public.reviews
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can manage their own reviews" ON public.reviews;
-CREATE POLICY "Users can manage their own reviews" ON public.reviews
-  FOR UPDATE USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can delete their own reviews" ON public.reviews;
-CREATE POLICY "Users can delete their own reviews" ON public.reviews
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Wines Policies (Publicly readable)
-DROP POLICY IF EXISTS "Anyone can read wines" ON public.wines;
-CREATE POLICY "Anyone can read wines" ON public.wines
-  FOR SELECT USING (true);
-
--- News Policies (Publicly readable)
-DROP POLICY IF EXISTS "Anyone can read news" ON public.news;
-CREATE POLICY "Anyone can read news" ON public.news
-  FOR SELECT USING (true);
-
--- Scans Policies
-DROP POLICY IF EXISTS "Users can manage their own scans" ON public.scans;
-CREATE POLICY "Users can manage their own scans" ON public.scans
-  FOR ALL USING (auth.uid() = user_id);
-
--- Cupido Profiles Policies
-DROP POLICY IF EXISTS "Read access for verified profiles" ON public.cupido_profiles;
-CREATE POLICY "Read access for verified profiles" ON public.cupido_profiles
-  FOR SELECT TO authenticated USING (true);
-
-DROP POLICY IF EXISTS "Write access to your own profile" ON public.cupido_profiles;
-CREATE POLICY "Write access to your own profile" ON public.cupido_profiles
-  FOR UPDATE TO authenticated USING (auth.uid() = id);
-
--- Cupido Swipes Policies
-DROP POLICY IF EXISTS "Insert own swipes" ON public.cupido_swipes;
-CREATE POLICY "Insert own swipes" ON public.cupido_swipes
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = sender_id);
-
-DROP POLICY IF EXISTS "Read own swipes" ON public.cupido_swipes;
-CREATE POLICY "Read own swipes" ON public.cupido_swipes
-  FOR SELECT TO authenticated USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
-
--- Cupido Matches Policies
-DROP POLICY IF EXISTS "Select own matches" ON public.cupido_matches;
-CREATE POLICY "Select own matches" ON public.cupido_matches
-  FOR SELECT TO authenticated USING (auth.uid() = user_one_id OR auth.uid() = user_two_id);
-
--- Cupido Messages Policies
-DROP POLICY IF EXISTS "Read conversation messages" ON public.cupido_messages;
-CREATE POLICY "Read conversation messages" ON public.cupido_messages
-  FOR SELECT TO authenticated USING (
-    EXISTS (
-      SELECT 1 FROM public.cupido_conversations c
-      JOIN public.cupido_matches m ON c.match_id = m.id
-      WHERE c.id = conversation_id 
-        AND (m.user_one_id = auth.uid() OR m.user_two_id = auth.uid())
-    )
-  );
-
-DROP POLICY IF EXISTS "Send conversation messages" ON public.cupido_messages;
-CREATE POLICY "Send conversation messages" ON public.cupido_messages
-  FOR INSERT TO authenticated WITH CHECK (
-    auth.uid() = sender_id AND
-    EXISTS (
-      SELECT 1 FROM public.cupido_conversations c
-      JOIN public.cupido_matches m ON c.match_id = m.id
-      WHERE c.id = conversation_id 
-        AND (m.user_one_id = auth.uid() OR m.user_two_id = auth.uid())
-    )
-  );
-
--- Cupido Event Registrations Policies
-DROP POLICY IF EXISTS "Select own registrations" ON public.cupido_event_registrations;
-CREATE POLICY "Select own registrations" ON public.cupido_event_registrations
-  FOR SELECT TO authenticated USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Create own registrations" ON public.cupido_event_registrations;
-CREATE POLICY "Create own registrations" ON public.cupido_event_registrations
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-
--- =========================================================================
--- 7. SEED DUMMY DATA (IF NOT EXISTS)
--- =========================================================================
-
--- Seed Wines
-INSERT INTO public.wines (name, region, grape, vintage, price, image, notes, rating)
-VALUES 
-('Meerlust Rubicon', 'Stellenbosch', 'Cabernet Sauvignon', '2018', 'R 500', 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=400&auto=format&fit=crop', 'A classic Stellenbosch Bordeaux blend with notes of cassis and cedar.', 4.5),
-('Vilafonté Series C', 'Paarl', 'Cabernet Sauvignon', '2019', 'R 1200', 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop', 'Elegant and structured, bursting with dark fruit.', 4.8),
-('Ataraxia Chardonnay', 'Hemel-en-Aarde', 'Chardonnay', '2021', 'R 350', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400&auto=format&fit=crop', 'Crisp, mineral-driven Chardonnay from the cool Hemel-en-Aarde valley.', 4.6),
-('Kanonkop Pinotage', 'Stellenbosch', 'Pinotage', '2019', 'R 450', 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?q=80&w=400&auto=format&fit=crop', 'The benchmark for Pinotage. Rich red fruit and subtle oak.', 4.7),
-('Sadie Family Columella', 'Swartland', 'Shiraz', '2020', 'R 1200', 'https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?q=80&w=400&auto=format&fit=crop', 'Spectacular Mediterranean-style red blend from Swartland.', 4.9)
-ON CONFLICT (name) DO NOTHING;
-
--- Seed News
-INSERT INTO public.news (title, category, image, description)
-VALUES 
-('Global Supply Shift Shapes Upcoming Vintages', 'Global News', 'https://images.unsplash.com/photo-1596758410228-568ea46a9b51?q=80&w=600&auto=format&fit=crop', 'Experts predict a rise in alternative varietals as traditional regions adapt to climate shifts this year.'),
-('South Africa''s Cap Classique Renaissance', 'Local Spotlight', 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=600&auto=format&fit=crop', 'Stellenbosch producers are gaining international acclaim for traditional method sparkling wines.'),
-('The Rise of Low-Intervention Wonders', 'Trend', 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop', 'Natural and biodynamic wines continue to see explosive growth among modern connoisseurs.')
-ON CONFLICT (title) DO NOTHING;
-
--- Cupido profiles are populated by authenticated onboarding and are not seeded with synthetic users.
-
--- =========================================================================
--- 8. ENABLE REALTIME REPLICATION (PUBLICATIONS) FOR LIVE UPDATES
--- =========================================================================
-BEGIN;
-  DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime FOR TABLE 
-    public.profiles, 
-    public.cellar, 
-    public.wishlist, 
-    public.consumption, 
-    public.events, 
-    public.reviews, 
-    public.news, 
-    public.scans,
-    public.cupido_profiles,
-    public.cupido_swipes,
-    public.cupido_matches,
-    public.cupido_conversations,
-    public.cupido_messages,
-    public.cupido_virtual_dates,
-    public.cupido_event_registrations;
-COMMIT;
-
-SELECT 'ENOVIQ AI: All database schemas, triggers, seed data, and live real-time structures completed successfully!' AS integration_status;
--- Supabase Full Backend Setup Script for AfriSommelier
-
--- =========================================
--- 1. Create Tables
--- =========================================
-
--- Profiles Table
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT,
-  first_name TEXT,
-  identity TEXT,
-  flavors JSONB,
-  regions JSONB,
-  interests JSONB,
-  sweet_dry TEXT,
-  light_full TEXT,
-  fruity_earthy TEXT,
-  location TEXT,
-  avatar_url TEXT,
-  taste_dna JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Cellar Table
-CREATE TABLE IF NOT EXISTS cellar (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT,
-  vintage TEXT,
-  region TEXT,
-  grape TEXT,
-  status TEXT,
-  status_color TEXT,
-  image TEXT,
-  rating NUMERIC,
-  awards TEXT,
-  price TEXT,
-  calories_per_glass NUMERIC,
-  is_organic BOOLEAN,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Wishlist Table
-CREATE TABLE IF NOT EXISTS wishlist (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT,
-  vintage TEXT,
-  region TEXT,
-  image TEXT,
-  price TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Consumption Table (Logged Glasses)
-CREATE TABLE IF NOT EXISTS consumption (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_name TEXT,
-  region TEXT,
-  grape TEXT,
-  calories NUMERIC,
-  date TEXT,
-  rating NUMERIC,
-  notes TEXT,
-  occasion TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Events Table
-CREATE TABLE IF NOT EXISTS events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT,
-  date TEXT,
-  time TEXT,
-  location TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Reviews Table
-CREATE TABLE IF NOT EXISTS reviews (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  wine_name TEXT,
-  rating NUMERIC,
-  review_text TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Wines Table (Directory)
-CREATE TABLE IF NOT EXISTS wines (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT UNIQUE,
-  region TEXT,
-  grape TEXT,
-  vintage TEXT,
-  price TEXT,
-  image TEXT,
-  notes TEXT,
-  rating NUMERIC
-);
-
--- News Table (Trending Now)
-CREATE TABLE IF NOT EXISTS news (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT UNIQUE,
-  category TEXT,
-  image TEXT,
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Scans Table (AI Sommelier Scans)
-CREATE TABLE IF NOT EXISTS scans (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  timestamp BIGINT,
-  mode TEXT NOT NULL CHECK (mode IN ('label', 'menu', 'winelist')),
-  preview_url TEXT,
-  result JSONB NOT NULL,
-  barcode TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Production schemas intentionally do not insert catalog or news records.
--- Manage wines and articles through the admin dashboard or controlled migrations.
-
--- =========================================
--- 2. Enable Row Level Security (RLS)
--- =========================================
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cellar ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
-ALTER TABLE consumption ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wines ENABLE ROW LEVEL SECURITY;
-ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
-
--- =========================================
--- 3. Create RLS Policies
--- =========================================
-
--- Profiles Policies
-DROP POLICY IF EXISTS "Users can manage their own profile" ON profiles;
-CREATE POLICY "Users can manage their own profile" ON profiles
-  FOR ALL USING (auth.uid() = id);
-
--- Cellar Policies
-DROP POLICY IF EXISTS "Users can manage their own cellar" ON cellar;
-CREATE POLICY "Users can manage their own cellar" ON cellar
-  FOR ALL USING (auth.uid() = user_id);
-
--- Wishlist Policies
-DROP POLICY IF EXISTS "Users can manage their own wishlist" ON wishlist;
-CREATE POLICY "Users can manage their own wishlist" ON wishlist
-  FOR ALL USING (auth.uid() = user_id);
-
--- Consumption Policies
-DROP POLICY IF EXISTS "Users can manage their own consumption logs" ON consumption;
-CREATE POLICY "Users can manage their own consumption logs" ON consumption
-  FOR ALL USING (auth.uid() = user_id);
-
--- Events Policies
-DROP POLICY IF EXISTS "Users can manage their own events" ON events;
-CREATE POLICY "Users can manage their own events" ON events
-  FOR ALL USING (auth.uid() = user_id);
-
--- Reviews Policies
-DROP POLICY IF EXISTS "Anyone can read reviews" ON reviews;
-CREATE POLICY "Anyone can read reviews" ON reviews
-  FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can add reviews" ON reviews;
-CREATE POLICY "Users can add reviews" ON reviews
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can manage their own reviews" ON reviews;
-CREATE POLICY "Users can manage their own reviews" ON reviews
-  FOR UPDATE USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can delete their own reviews" ON reviews;
-CREATE POLICY "Users can delete their own reviews" ON reviews
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Wines Policies
-DROP POLICY IF EXISTS "Anyone can read wines" ON wines;
-CREATE POLICY "Anyone can read wines" ON wines
-  FOR SELECT USING (true);
-
--- News Policies
-DROP POLICY IF EXISTS "Anyone can read news" ON news;
-CREATE POLICY "Anyone can read news" ON news
-  FOR SELECT USING (true);
-
--- Scans Policies
-DROP POLICY IF EXISTS "Users can manage their own scans" ON scans;
-CREATE POLICY "Users can manage their own scans" ON scans
-  FOR ALL USING (auth.uid() = user_id);
-
--- =========================================
--- 4. Auto-Create Profile on Signup Trigger
--- =========================================
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, first_name)
-  VALUES (new.id, new.email, split_part(new.email, '@', 1));
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Drop trigger if it exists
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
--- Recreate trigger
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-
--- =========================================
--- 5. Enable Realtime for Dashboard
--- =========================================
-BEGIN;
-  DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime FOR TABLE profiles, cellar, wishlist, consumption, events, reviews, news, scans;
-COMMIT;
-
-
--- Production admin support inbox
-CREATE TABLE IF NOT EXISTS support_tickets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  message TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'Resolved')),
-  category TEXT NOT NULL CHECK (category IN ('Fraud Reporting', 'Sommelier Support', 'App Feedback', 'Wine Listing Error')),
-  reply TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Production promotion campaigns
-CREATE TABLE IF NOT EXISTS promotions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  wine_name TEXT NOT NULL,
-  discount TEXT NOT NULL,
-  target TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT TRUE,
-  image TEXT,
-  description TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Admins manage support tickets" ON support_tickets
-  FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')));
-
-CREATE POLICY "Admins manage promotions" ON promotions
-  FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('super_admin', 'admin', 'lead_sommelier')));
-
-ALTER PUBLICATION supabase_realtime ADD TABLE support_tickets;
-ALTER PUBLICATION supabase_realtime ADD TABLE promotions;
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.current_user_role() in ('lead_sommelier', 'admin', 'super_admin'), false)
+$$;

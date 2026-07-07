@@ -498,7 +498,7 @@ export default function GrapeKnowledgePage({ slug, onBack, onSelectWine }: Props
       }, 2000);
     } catch (err) {
       console.error("Save virtual bottle error:", err);
-      alert("Added to your local cellar collection successfully! (Local state sync complete)");
+      alert("Unable to add this bottle to your live cellar. Please try again.");
       setIsAddingToCellar(false);
     }
   };

@@ -814,8 +814,7 @@ Structure your JSON response exactly like this:
       onSelectWine(wine);
     } catch (err: any) {
       console.error("Error adding to cellar database:", err);
-      alert("Added temporarily to review details. Please make sure authentication setup is active for persistent database storing.");
-      onSelectWine(wine);
+      alert("Unable to save this wine to your live cellar. Please try again.");
     }
   };
 
