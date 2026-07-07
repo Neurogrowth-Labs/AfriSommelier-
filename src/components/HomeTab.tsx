@@ -42,11 +42,11 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      if (user.email === 'simao@neurogrowthlabs.co.za') {
+      const { data: profileData } = await supabase.from('profiles').select('email, first_name, role').eq('id', user.id).single();
+      if (profileData?.role && ['admin', 'super_admin', 'lead_sommelier'].includes(profileData.role)) {
         setIsAdmin(true);
       }
       
-      const { data: profileData } = await supabase.from('profiles').select('email, first_name').eq('id', user.id).single();
       if (profileData && profileData.first_name && isMounted) {
          setFirstName(profileData.first_name);
       } else if (user.email && isMounted) {
@@ -87,11 +87,11 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
         .from('events')
         .select('*')
         .eq('user_id', user.id)
-        .order('date', { ascending: true });
+        .order('event_date', { ascending: true });
         
       if (data && isMounted) {
         const today = new Date().toISOString().split('T')[0];
-        setEvents(data.filter((e: any) => e.date >= today));
+        setEvents(data.filter((e: any) => (e.event_date || '').slice(0, 10) >= today));
       }
     };
 
@@ -299,8 +299,8 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
             {events.slice(0, 3).map(event => (
               <div key={event.id} className="bg-[#0A0A0A]/90 p-3 rounded-xl flex items-center gap-4 luxury-border shadow-[0_5px_20px_rgba(0,0,0,0.3)]">
                 <div className="bg-[#12100C] rounded-lg p-2.5 text-center min-w-[60px] border border-[#C8A24A]/10">
-                  <p className="text-[10px] text-[#F2E7D5]/50 uppercase font-mono tracking-widest font-bold">{new Date(event.date).toLocaleString('default', { month: 'short' })}</p>
-                  <p className="text-lg font-serif font-semibold text-[#C8A24A] mt-0.5">{new Date(event.date).getDate()}</p>
+                  <p className="text-[10px] text-[#F2E7D5]/50 uppercase font-mono tracking-widest font-bold">{new Date(event.event_date).toLocaleString('default', { month: 'short' })}</p>
+                  <p className="text-lg font-serif font-semibold text-[#C8A24A] mt-0.5">{new Date(event.event_date).getDate()}</p>
                 </div>
                 <div>
                   <h4 className="font-serif text-[15px] text-[#F2E7D5] mb-1">{event.title}</h4>

@@ -245,78 +245,7 @@ export default function CupidoTab() {
         const user = authData?.user;
         if (!user) return;
 
-        // 1. Ingest/seeding fallback routines so Supabase tables are never blank on new connection
-        const seedProfiles = [
-          {
-            id: 'e0a1b2c3-4d5e-6f7a-8b9c-0d1e2f3a4b5c',
-            full_name: 'Emma',
-            photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'French Wine Enthusiast',
-            personality: 'The Collector',
-            old_world_affinity: 95,
-            bold_reds_affinity: 88,
-            luxury_dining_affinity: 92,
-            adventure_affinity: 81,
-            favorite_wines: ['Pinot Noir', 'Champagne', 'Barolo'],
-            favorite_experiences: ['Tuscany', 'Michelin Dining', 'Opera'],
-            location_name: 'Stellenbosch, South Africa',
-            is_premium: true
-          },
-          {
-            id: 'a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
-            full_name: 'Alex',
-            photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Bold Red Collector',
-            onConflict: 'id',
-            personality: 'The Connoisseur',
-            old_world_affinity: 80,
-            bold_reds_affinity: 96,
-            luxury_dining_affinity: 85,
-            adventure_affinity: 89,
-            favorite_wines: ['Syrah/Shiraz', 'Cabernet Sauvignon', 'Malbec'],
-            favorite_experiences: ['Stellenbosch Braai', 'Helicopter Vineyard Tour', 'Napa Valley'],
-            location_name: 'Franschhoek, South Africa',
-            is_premium: false
-          },
-          {
-            id: 's2c3d4e5-6f7a-8b9c-0d1e-2f3a4b5c6d7e',
-            full_name: 'Sophia',
-            photo_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Vintage Champagne Specialist',
-            personality: 'The Avant-Garde Sommelier',
-            old_world_affinity: 90,
-            bold_reds_affinity: 60,
-            luxury_dining_affinity: 98,
-            adventure_affinity: 85,
-            favorite_wines: ['Blanc de Blancs', 'Pet-Nat', 'Chardonnay'],
-            favorite_experiences: ['Franschhoek Tram', 'Oyster Shucking', 'Art Galleries'],
-            location_name: 'Constantia, South Africa',
-            is_premium: true
-          },
-          {
-            id: 'c3d4e5f6-7a8b-9c0d-1e2f-3a4b5c6d7e8f',
-            full_name: 'Chloe',
-            photo_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Eclectic Orange explorer',
-            personality: 'The Naturalist Rebel',
-            old_world_affinity: 75,
-            bold_reds_affinity: 70,
-            luxury_dining_affinity: 72,
-            adventure_affinity: 95,
-            favorite_wines: ['Amphora Chenin Blanc', 'Barolo', 'Cinsault'],
-            favorite_experiences: ['Swartland Organic Harvest', 'Record Bars', 'Glamping'],
-            location_name: 'Cape Town, South Africa',
-            is_premium: false
-          }
-        ];
-
-        // Seed profiles to ensure tables are active and persistent
-        for (const p of seedProfiles) {
-          try {
-            await supabase.from('cupido_profiles').upsert(p);
-          } catch {}
-        }
-
+        // 1. Ensure the signed-in user has a live Cupido profile for realtime matching
         // Check/create user's own profile in cupido_profiles to manage auth rules
         let { data: myCupidoProfile } = await supabase
           .from('cupido_profiles')
@@ -1320,7 +1249,7 @@ export default function CupidoTab() {
                   }}
                   className="w-full bg-[#8B1538] hover:bg-[#A31C43] text-white text-xs font-serif font-bold py-2.5 rounded-xl transition-all shadow-lg cursor-pointer"
                 >
-                  Start Simulated Tasting Date with {currentProfile.name}
+                  Start Virtual Tasting Date with {currentProfile.name}
                 </button>
               </motion.div>
             )}
@@ -1967,7 +1896,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
           </div>
           <div className="flex items-center gap-2">
             <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>Simulated Virtual Wine Dates</strong>: Host custom date rooms</span>
+            <span><strong>Virtual Wine Dates</strong>: Host custom date rooms</span>
           </div>
           <div className="flex items-center gap-2">
             <Check size={14} className="text-[#D4AF37]" />
