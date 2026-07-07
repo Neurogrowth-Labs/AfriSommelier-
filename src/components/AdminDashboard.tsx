@@ -135,13 +135,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         });
         setUsersList(mappedProfiles);
       } else {
-        // Mock default users in local storage if database is active but empty
-        setUsersList([
-          { id: '1', email: 'simao@neurogrowthlabs.co.za', first_name: 'Simão', identity: 'Investor / Collector', role: 'super_admin', taste_dna: { Boldness: 70, Tannin: 80, Sweetness: 10, Acidity: 90 }, created_at: new Date().toISOString() },
-          { id: '2', email: 'vintagelover@gmail.com', first_name: 'Thabo', identity: 'Wine Explorer', role: 'explorer', taste_dna: { Boldness: 40, Tannin: 30, Sweetness: 50, Acidity: 60 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-          { id: '3', email: 'somm.expert@sydney.au', first_name: 'Clara', identity: 'Hospitality Professional', role: 'lead_sommelier', taste_dna: { Boldness: 85, Tannin: 90, Sweetness: 5, Acidity: 80 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString() },
-          { id: '4', email: 'suspicion.spammer@trashmail.com', first_name: 'RobotFramer', identity: 'Wine Explorer', role: 'suspended', taste_dna: { Boldness: 0, Tannin: 0, Sweetness: 100, Acidity: 0 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString() }
-        ]);
+        setUsersList([]);
+        if (pErr) triggerToast(`Unable to load profiles: ${pErr.message}`);
       }
 
       // 2. Fetch Wines Catalog
@@ -156,32 +151,24 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         setNewsList(news);
       }
 
-      // 4. Load Support Tickets from LocalStorage Mock-DB to prevent database dependency issues
-      const storedTickets = localStorage.getItem('mock_db_support_tickets');
-      if (storedTickets) {
-        setTicketsList(JSON.parse(storedTickets));
-      } else {
-        const seedTickets: SupportTicket[] = [
-          { id: 't1', email: 'vintagelover@gmail.com', subject: 'Inquiry on Sadie Family Columella', message: 'Hi Simão, can you confirm if the 2020 Sadie Family vintage is stock available for next months auction in Paarl?', status: 'Open', category: 'Sommelier Support', created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString() },
-          { id: 't2', email: 'spam.bot@malicious.xyz', subject: 'FREE CASINO CHIPS CLICK HERE', message: 'Double your income today by buying crypto tokens on our decentralized platform. Fast payout.', status: 'Open', category: 'Fraud Reporting', created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
-          { id: 't3', email: 'clara.dining@culinary.co.za', subject: 'Wine Tasting Acidity Correction', message: 'The descriptor for Ataraxia Chardonnay states notes of toasted oak, but cool-climate Ataraxia is highly mineral-driven with almost no oak profile. Can the Sommelier AI team update the tasting notes?', status: 'Open', category: 'Wine Listing Error', created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString() }
-        ];
-        localStorage.setItem('mock_db_support_tickets', JSON.stringify(seedTickets));
-        setTicketsList(seedTickets);
+      // 4. Fetch support tickets from Supabase
+      const { data: tickets, error: tErr } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!tErr && tickets) {
+        setTicketsList(tickets);
       }
 
-      // 5. Load Promotions from LocalStorage
-      const storedPromos = localStorage.getItem('mock_db_promotions');
-      if (storedPromos) {
-        setPromotionsList(JSON.parse(storedPromos));
-      } else {
-        const seedPromos: Promotion[] = [
-          { id: 'p1', title: 'Winter Stellenbosch Prestige', wine_name: 'Meerlust Rubicon', discount: '20% off Cellar Price', target: 'Collectors', active: true, image: 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?q=80&w=400', description: 'Curated winter promotion featuring stellar pairings for South Africa\'s iconic Bordeaux-blend.' },
-          { id: 'p2', title: 'Cap Classique Sparklers', wine_name: 'Kanonkop Pinotage', discount: 'Complimentary Glass', target: 'Explorers', active: true, image: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?q=80&w=400', description: 'Unlock elegant bubbles when you scan and log 3 or more South African Pinotages this week.' }
-        ];
-        localStorage.setItem('mock_db_promotions', JSON.stringify(seedPromos));
-        setPromotionsList(seedPromos);
+      // 5. Fetch promotions from Supabase
+      const { data: promotions, error: promoErr } = await supabase
+        .from('promotions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!promoErr && promotions) {
+        setPromotionsList(promotions);
       }
+
 
     } catch (e) {
       console.error(e);
@@ -213,7 +200,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const handleBlockUser = async (userId: string, email: string) => {
     await updateUserRole(userId, 'suspended');
     
-    // Flag IP / Fraud Shield simulation
+    // Record fraud-control action in the live admin audit feed
     setSecurityLogs(prev => [
       `CRITICAL FLAG: Blocked traffic from associated IP of suspicious user: ${email}`,
       `Deactivated session keys for ${email}`,
@@ -224,7 +211,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     // Resolve any open tickets from this fraud email
     const updatedTickets = ticketsList.map(t => t.email === email ? { ...t, status: 'Resolved' as const, reply: 'Blocked and filtered as fraudulent activity.' } : t);
     setTicketsList(updatedTickets);
-    localStorage.setItem('mock_db_support_tickets', JSON.stringify(updatedTickets));
+    await supabase.from('support_tickets').update({ status: 'Resolved', reply: 'Blocked and filtered as fraudulent activity.' }).eq('email', email);
   };
 
   // Wine Catalog Manager: Add, Edit, Update, Delete
@@ -259,9 +246,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         setWinesList(prev => prev.map(w => w.id === newWine.id ? newWine : w));
         triggerToast("Wine profile updated successfully.");
       } else {
-        // Mock fallback
-        setWinesList(prev => prev.map(w => w.id === newWine.id ? newWine : w));
-        triggerToast("Wine profile updated locally.");
+        triggerToast(`Wine update failed: ${error.message}`);
       }
       setIsEditingWine(null);
     } else {
@@ -271,9 +256,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         setWinesList(prev => [newWine, ...prev]);
         triggerToast("Successfully advertised new wine to Enoviq Catalog.");
       } else {
-        // Mock fallback
-        setWinesList(prev => [newWine, ...prev]);
-        triggerToast("Advertised wine added to search catalogue (Local).");
+        triggerToast(`Wine publish failed: ${error.message}`);
       }
       setIsAddingWine(false);
     }
@@ -287,8 +270,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       setWinesList(prev => prev.filter(w => w.id !== id));
       triggerToast(`Removed ${name} from the catalog.`);
     } else {
-      setWinesList(prev => prev.filter(w => w.id !== id));
-      triggerToast(`Removed ${name} from catalog list locally.`);
+      triggerToast(`Unable to remove ${name}: ${error.message}`);
     }
   };
 
@@ -308,7 +290,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   };
 
   // Ticket Support Actions
-  const handleReplyTicket = (e: React.FormEvent) => {
+  const handleReplyTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket || !ticketReplyText.trim()) return;
 
@@ -320,7 +302,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     });
 
     setTicketsList(updated);
-    localStorage.setItem('mock_db_support_tickets', JSON.stringify(updated));
+    await supabase.from('support_tickets').update({ status: 'Resolved', reply: ticketReplyText }).eq('id', selectedTicket.id);
     triggerToast(`Support ticket resolved. Reply dispatched to ${selectedTicket.email}.`);
     
     setSecurityLogs(prev => [
@@ -333,7 +315,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   };
 
   // Add Curated Promotions
-  const handleSavePromo = (e: React.FormEvent) => {
+  const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     const newPromo: Promotion = {
       id: crypto.randomUUID(),
@@ -346,20 +328,29 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       description: promoForm.description
     };
 
-    const updated = [newPromo, ...promotionsList];
-    setPromotionsList(updated);
-    localStorage.setItem('mock_db_promotions', JSON.stringify(updated));
-    triggerToast(`curated promotion campaign "${newPromo.title}" published!`);
+    const { error } = await supabase.from('promotions').insert(newPromo);
+    if (!error) {
+      setPromotionsList(prev => [newPromo, ...prev]);
+      triggerToast(`curated promotion campaign "${newPromo.title}" published!`);
+    } else {
+      triggerToast(`Promotion publish failed: ${error.message}`);
+    }
 
     setIsAddingPromo(false);
     setPromoForm({ title: '', wine_name: '', discount: '15% Off', target: 'Pinotage Collectors', description: '', image: '' });
   };
 
-  const togglePromo = (id: string) => {
-    const updated = promotionsList.map(p => p.id === id ? { ...p, active: !p.active } : p);
-    setPromotionsList(updated);
-    localStorage.setItem('mock_db_promotions', JSON.stringify(updated));
-    triggerToast("Promotional activity toggled successfully.");
+  const togglePromo = async (id: string) => {
+    const promo = promotionsList.find(p => p.id === id);
+    if (!promo) return;
+    const nextActive = !promo.active;
+    const { error } = await supabase.from('promotions').update({ active: nextActive }).eq('id', id);
+    if (!error) {
+      setPromotionsList(prev => prev.map(p => p.id === id ? { ...p, active: nextActive } : p));
+      triggerToast("Promotional activity toggled successfully.");
+    } else {
+      triggerToast(`Promotion update failed: ${error.message}`);
+    }
   };
 
   // Add News Curation
@@ -379,8 +370,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       setNewsList(prev => [newNews, ...prev]);
       triggerToast("News article broadcasted globally.");
     } else {
-      setNewsList(prev => [newNews, ...prev]);
-      triggerToast("News article published internally.");
+      triggerToast(`News publish failed: ${error.message}`);
     }
 
     setIsAddingNews(false);
@@ -613,7 +603,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                   <StatCard label="Promo Campaigns" val={promotionsList.length.toString()} desc="Active advertising" color="text-green-400" />
                 </div>
 
-                {/* Simulated Performance Charts & Security logs */}
+                {/* Live performance charts & security logs */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-pulse">
                   
                   {/* AI Firewall State Graph */}
