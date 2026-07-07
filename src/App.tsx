@@ -23,6 +23,7 @@ import AddWineCollectionScreen from './components/AddWineCollectionScreen';
 import ManualEntryScreen from './components/ManualEntryScreen';
 import SearchWineScreen from './components/SearchWineScreen';
 import GrapeKnowledgePage from './components/GrapeKnowledgePage';
+import { isConfiguredAdminEmail } from './config';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -52,7 +53,7 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          if (user.email === 'simao@neurogrowthlabs.co.za') {
+          if (isConfiguredAdminEmail(user.email)) {
             setIsOnboarding(false);
           } else {
             const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();

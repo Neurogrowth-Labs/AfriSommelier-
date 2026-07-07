@@ -5,6 +5,7 @@ import {
   Briefcase, Hotel, ChevronRight, Check, AlertCircle, Mail, Lock, LogIn, UserPlus, User
 } from 'lucide-react';
 import { supabase, loginWithEmail, registerWithEmail } from '../supabase';
+import { isConfiguredAdminEmail } from '../config';
 
 const identities = [
   { id: 'explorer', label: 'Wine Explorer', icon: <Grape className="w-6 h-6" /> },
@@ -202,7 +203,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
       }
       
       const cleanEmail = email.toLowerCase().trim();
-      if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
+      if (isConfiguredAdminEmail(cleanEmail)) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await supabase.from('profiles').upsert({

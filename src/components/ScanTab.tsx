@@ -29,6 +29,7 @@ import { BrowserMultiFormatReader } from '@zxing/library';
 import { getScanHistory, saveScanToCache, clearScanHistory, CachedScan } from '../services/scanCache';
 
 type ScanMode = 'label' | 'menu' | 'winelist';
+const ENABLE_SCAN_DEMOS = import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true';
 
 const triggerHaptics = (success = true) => {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -107,6 +108,56 @@ async function preprocessImage(file: File): Promise<{ processedBase64: string, p
   });
 }
 
+function extractJsonObject(text: string): any {
+  const trimmed = text.trim();
+  if (!trimmed) return {};
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) {
+    try {
+      return JSON.parse(fenced[1].trim());
+    } catch {}
+  }
+
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    } catch {}
+  }
+
+  return {};
+}
+
+function normalizeScanResult(result: any, fallback: any, mode: ScanMode) {
+  const normalized = result?.type === mode ? result : fallback;
+
+  if (normalized.type === 'label' && Array.isArray(normalized.wines)) {
+    normalized.wines = normalized.wines.map((wine: any) => {
+      const rawConfidence = wine.confidence;
+      const parsedConfidence = typeof rawConfidence === 'string'
+        ? Number(rawConfidence.replace('%', '')) / (rawConfidence.includes('%') ? 100 : 1)
+        : Number(rawConfidence);
+
+      return {
+        ...wine,
+        confidence: Number.isFinite(parsedConfidence) && parsedConfidence > 0 ? Math.min(parsedConfidence, 1) : 0.9,
+        rating: Number(wine.rating) || 90,
+        match: wine.match || '90%',
+        pairings: Array.isArray(wine.pairings) ? wine.pairings : [],
+        grapes_ratio: Array.isArray(wine.grapes_ratio) ? wine.grapes_ratio : []
+      };
+    });
+  }
+
+  return normalized;
+}
+
 async function decodeBarcodeOrQR(imageUrl: string): Promise<string | null> {
   try {
     const reader = new BrowserMultiFormatReader();
@@ -151,6 +202,7 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
   useEffect(() => {
     let activeStream: MediaStream | null = null;
     if (isScanning && useCamera) {
+      setCameraError(null);
       navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
           activeStream = stream;
@@ -173,6 +225,15 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
       setCameraStream(null);
     };
   }, [isScanning, useCamera]);
+
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(() => {
+        // Some browsers block autoplay until a user gesture; capture still remains available after play.
+      });
+    }
+  }, [cameraStream]);
 
   // Advanced Enterprise Scanning Settings
   const [settings, setSettings] = useState({
@@ -482,8 +543,14 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
   };
 
   const processImageContent = async (processedBase64: string, processedUrl: string) => {
+    if (!processedBase64 || !processedUrl) {
+      throw new Error("Unable to read image data for scanning.");
+    }
+
     setIsScanning(false);
     setIsProcessing(true);
+    setScanResult(null);
+    setEditingWine(null);
     setActiveStageIndex(0);
 
     const stages = STAGES_BY_MODE[scanMode];
@@ -618,12 +685,12 @@ Structure your JSON response exactly like this:
         responseFormat: { type: "json_object" }
       });
 
-      const parsed = JSON.parse(responseText || "{}");
+      const parsed = extractJsonObject(responseText || "");
       let finalResult = SAMPLES[scanMode];
       
       // If result looks incomplete, fallback to high-quality template values matching the chosen mode
       if (parsed.type) {
-        finalResult = parsed;
+        finalResult = normalizeScanResult(parsed, SAMPLES[scanMode], scanMode);
       }
 
       // Check if candidate confidence is below 85% to trigger a manual review alert prompt
@@ -649,7 +716,12 @@ Structure your JSON response exactly like this:
       });
 
     } catch (e) {
-      console.error("AI Scan failed, falling back to clean template simulation:", e);
+      console.error("AI Scan failed:", e);
+      if (!ENABLE_SCAN_DEMOS) {
+        alert("Scan analysis failed. Please check your AI provider configuration and try a clearer image.");
+        setIsScanning(true);
+        return;
+      }
       const fallbackResult = SAMPLES[scanMode];
       setScanResult(fallbackResult);
       
@@ -679,6 +751,9 @@ Structure your JSON response exactly like this:
       await processImageContent(processedBase64, processedUrl);
     } catch (err) {
       console.error("File preprocessing failed:", err);
+      alert("We could not read that image. Please try a JPG/PNG photo with the label or menu in focus.");
+    } finally {
+      event.target.value = '';
     }
   };
 
@@ -719,6 +794,7 @@ Structure your JSON response exactly like this:
       }
     } catch (err) {
       console.error("Camera capture failed:", err);
+      alert("We could not capture from the camera. Please try again or switch to photo upload.");
     }
   };
 
@@ -818,11 +894,12 @@ Structure your JSON response exactly like this:
 
             {/* Interactive Target Interface Container */}
             <div className="relative w-64 h-72 border border-white/10 rounded-2xl mx-auto flex flex-col items-center justify-center overflow-hidden bg-black/40 backdrop-blur-sm shadow-[0_12px_40px_rgba(0,0,0,0.8)]">
-              {useCamera && cameraStream ? (
+              {useCamera ? (
                 <video 
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : null}
@@ -842,7 +919,7 @@ Structure your JSON response exactly like this:
 
               <div className="text-center z-10 p-4 pointer-events-none bg-black/40 rounded-xl backdrop-blur-[1px]">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-[#C8A24A] mb-1 animate-pulse">
-                  {useCamera && cameraStream ? 'Camera Stream Live' : 'System Ready'}
+                  {useCamera && cameraStream ? 'Camera Stream Live' : cameraError ? 'Camera Unavailable' : 'System Ready'}
                 </p>
                 <span className="text-xs text-gray-200">
                   {scanMode === 'label' && 'Align wine label here'}
@@ -925,38 +1002,40 @@ Structure your JSON response exactly like this:
               )}
             </AnimatePresence>
 
-            {/* Simulated interactive demos */}
-            <div className="space-y-3 max-w-sm mx-auto w-full">
-              <span className="text-[10px] tracking-wider text-gray-500 font-mono uppercase block text-center">
-                Interactive One-Tap Scenarios
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <button 
-                  onClick={() => handleSampleClick('label')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">🍷</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Château Margaux</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Label Mode</span>
-                </button>
-                <button 
-                  onClick={() => handleSampleClick('menu')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">🥩</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Bistro Food Menu</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Menu Mode</span>
-                </button>
-                <button 
-                  onClick={() => handleSampleClick('winelist')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">📜</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Fine Wine List</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">List Analyzer</span>
-                </button>
+            {/* Local-only interactive demos */}
+            {ENABLE_SCAN_DEMOS && (
+              <div className="space-y-3 max-w-sm mx-auto w-full">
+                <span className="text-[10px] tracking-wider text-gray-500 font-mono uppercase block text-center">
+                  Interactive One-Tap Scenarios
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button 
+                    onClick={() => handleSampleClick('label')}
+                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
+                  >
+                    <span className="text-lg">🍷</span>
+                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Château Margaux</span>
+                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Label Mode</span>
+                  </button>
+                  <button 
+                    onClick={() => handleSampleClick('menu')}
+                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
+                  >
+                    <span className="text-lg">🥩</span>
+                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Bistro Food Menu</span>
+                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Menu Mode</span>
+                  </button>
+                  <button 
+                    onClick={() => handleSampleClick('winelist')}
+                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
+                  >
+                    <span className="text-lg">📜</span>
+                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Fine Wine List</span>
+                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">List Analyzer</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Custom File Upload or Live Camera Capture */}
             <div className="flex flex-col items-center gap-3">

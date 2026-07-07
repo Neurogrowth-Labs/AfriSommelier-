@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ChevronRight, Activity, Droplet, Calendar, Plus, TrendingUp } from 'lucide-react';
 import { supabase } from '../supabase';
 import EventModal from './EventModal';
+import { isConfiguredAdminEmail } from '../config';
 
 export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (wine: any) => void, onNavigate: (tab: string, state?: any) => void }) {
   const [glassesThisWeek, setGlassesThisWeek] = useState(0);
@@ -42,7 +43,7 @@ export default function HomeTab({ onSelectWine, onNavigate }: { onSelectWine: (w
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      if (user.email === 'simao@neurogrowthlabs.co.za') {
+      if (isConfiguredAdminEmail(user.email)) {
         setIsAdmin(true);
       }
       

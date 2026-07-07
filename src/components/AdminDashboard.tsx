@@ -6,6 +6,7 @@ import {
   Lock, ArrowRight, BookOpen, Volume2, Landmark, HelpCircle, Save, Megaphone
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { ADMIN_EMAIL, isConfiguredAdminEmail } from '../config';
 
 interface UserProfile {
   id: string;
@@ -81,7 +82,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   // Fraud Control Alerts Trigger
   const [fraudThreatLevel, setFraudThreatLevel] = useState<'Low' | 'Moderate' | 'Critical'>('Low');
   const [securityLogs, setSecurityLogs] = useState<string[]>([
-    'Secure Admin Login initiated by simao@neurogrowthlabs.co.za',
+    ADMIN_EMAIL ? `Secure Admin Login initiated by ${ADMIN_EMAIL}` : 'Secure Admin Login initiated',
     'AI firewall state synchronized with DeepMind Engine',
     'Realtime PostgreSQL connection established successfully'
   ]);
@@ -126,22 +127,15 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       // 1. Fetch Users Profile Table
       const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
       if (!pErr && profiles) {
-        // Enforce simao being admin
         const mappedProfiles = profiles.map((p: any) => {
-          if (p.email === 'simao@neurogrowthlabs.co.za') {
+          if (isConfiguredAdminEmail(p.email)) {
             return { ...p, role: 'super_admin' };
           }
           return { role: 'explorer', ...p };
         });
         setUsersList(mappedProfiles);
       } else {
-        // Mock default users in local storage if database is active but empty
-        setUsersList([
-          { id: '1', email: 'simao@neurogrowthlabs.co.za', first_name: 'Simão', identity: 'Investor / Collector', role: 'super_admin', taste_dna: { Boldness: 70, Tannin: 80, Sweetness: 10, Acidity: 90 }, created_at: new Date().toISOString() },
-          { id: '2', email: 'vintagelover@gmail.com', first_name: 'Thabo', identity: 'Wine Explorer', role: 'explorer', taste_dna: { Boldness: 40, Tannin: 30, Sweetness: 50, Acidity: 60 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-          { id: '3', email: 'somm.expert@sydney.au', first_name: 'Clara', identity: 'Hospitality Professional', role: 'lead_sommelier', taste_dna: { Boldness: 85, Tannin: 90, Sweetness: 5, Acidity: 80 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString() },
-          { id: '4', email: 'suspicion.spammer@trashmail.com', first_name: 'RobotFramer', identity: 'Wine Explorer', role: 'suspended', taste_dna: { Boldness: 0, Tannin: 0, Sweetness: 100, Acidity: 0 }, created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString() }
-        ]);
+        setUsersList([]);
       }
 
       // 2. Fetch Wines Catalog
@@ -421,7 +415,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                 Master Shell
               </span>
             </h1>
-            <p className="text-xs text-gray-400 font-mono">Operator ID: simao@neurogrowthlabs.co.za</p>
+            <p className="text-xs text-gray-400 font-mono">Operator ID: {ADMIN_EMAIL || 'Configured Admin'}</p>
           </div>
         </div>
 
@@ -715,8 +709,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           <td className="p-4">
                             <div className="font-semibold text-ivory flex items-center gap-2">
                               {user.first_name || 'N/A'}
-                              {user.email === 'simao@neurogrowthlabs.co.za' && (
-                                <span className="text-[9px] bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono">Simão</span>
+                              {isConfiguredAdminEmail(user.email) && (
+                                <span className="text-[9px] bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono">Admin</span>
                               )}
                             </div>
                             <div className="text-[11px] text-gray-500 font-mono">{user.email}</div>
@@ -734,7 +728,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           <td className="p-4 text-gray-300">{user.identity || 'Standard Explorer'}</td>
                           <td className="p-4 text-gray-400 font-mono">{new Date(user.created_at).toLocaleDateString()}</td>
                           <td className="p-4 text-right space-x-1.5">
-                            {user.email !== 'simao@neurogrowthlabs.co.za' && (
+                            {!isConfiguredAdminEmail(user.email) && (
                               <>
                                 <select 
                                   value={user.role || 'explorer'}

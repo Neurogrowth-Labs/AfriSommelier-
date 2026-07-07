@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { isConfiguredAdminEmail } from './config';
 
 const isPlaceholderUrl = (url: string | undefined): boolean => {
   return !url || url.includes('placeholder') || url.includes('example.com') || url === '';
@@ -6,8 +7,13 @@ const isPlaceholderUrl = (url: string | undefined): boolean => {
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const hasSupabaseConfig = !isPlaceholderUrl(supabaseUrl) && !isPlaceholderUrl(supabaseAnonKey);
+const isMockDataEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true';
 
-const shouldUseMock = isPlaceholderUrl(supabaseUrl) || isPlaceholderUrl(supabaseAnonKey);
+const shouldUseMock = isMockDataEnabled && !hasSupabaseConfig;
+const missingSupabaseError = {
+  message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, or enable VITE_ENABLE_MOCK_DATA=true for local demos.'
+};
 
 function getSeededData(tableName: string): any[] {
   if (tableName === 'wines') {
@@ -140,6 +146,7 @@ class MockUpdateBuilder {
   tableName: string;
   payload: any;
   filters: ((item: any) => boolean)[] = [];
+  shouldReturnSingle = false;
 
   constructor(tableName: string, payload: any) {
     this.tableName = tableName;
@@ -148,6 +155,15 @@ class MockUpdateBuilder {
 
   eq(column: string, value: any) {
     this.filters.push((item: any) => item[column] === value);
+    return this;
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
     return this;
   }
 
@@ -173,13 +189,15 @@ class MockUpdateBuilder {
       return item;
     });
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(updated));
-    return { data: updated, error: null };
+    const changed = updated.filter(item => this.filters.every(f => f(item)));
+    return { data: this.shouldReturnSingle ? changed[0] || null : changed, error: null };
   }
 }
 
 class MockDeleteBuilder {
   tableName: string;
   filters: ((item: any) => boolean)[] = [];
+  shouldReturnSingle = false;
 
   constructor(tableName: string) {
     this.tableName = tableName;
@@ -187,6 +205,15 @@ class MockDeleteBuilder {
 
   eq(column: string, value: any) {
     this.filters.push((item: any) => item[column] === value);
+    return this;
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
     return this;
   }
 
@@ -202,12 +229,92 @@ class MockDeleteBuilder {
         data = JSON.parse(stored);
       } catch {}
     }
+    const deleted: any[] = [];
     const rem = data.filter(item => {
       const matchesAll = this.filters.every(f => f(item));
+      if (matchesAll) {
+        deleted.push(item);
+        triggerMockChannelEvent(this.tableName, 'DELETE', item);
+      }
       return !matchesAll;
     });
     localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(rem));
-    return { data: rem, error: null };
+    return { data: this.shouldReturnSingle ? deleted[0] || null : deleted, error: null };
+  }
+}
+
+class MockInsertBuilder {
+  tableName: string;
+  rows: any[];
+  shouldReturnSingle = false;
+
+  constructor(tableName: string, rowOrRows: any) {
+    this.tableName = tableName;
+    this.rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
+  }
+
+  select() {
+    return this;
+  }
+
+  single() {
+    this.shouldReturnSingle = true;
+    return this;
+  }
+
+  then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
+    return this.execute().then(onfulfilled, onrejected);
+  }
+
+  async execute() {
+    const stored = localStorage.getItem(`mock_db_${this.tableName}`);
+    let data: any[] = [];
+    if (stored) {
+      try {
+        data = JSON.parse(stored);
+      } catch {}
+    }
+
+    const records = this.rows.map(r => ({
+      id: r.id || crypto.randomUUID(),
+      created_at: r.created_at || new Date().toISOString(),
+      ...r
+    }));
+    data.unshift(...records);
+    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(data));
+    records.forEach(record => triggerMockChannelEvent(this.tableName, 'INSERT', record));
+    return { data: this.shouldReturnSingle ? records[0] || null : records, error: null };
+  }
+}
+
+class MockUpsertBuilder extends MockInsertBuilder {
+  async execute() {
+    const stored = localStorage.getItem(`mock_db_${this.tableName}`);
+    let data: any[] = [];
+    if (stored) {
+      try {
+        data = JSON.parse(stored);
+      } catch {}
+    }
+
+    const records = this.rows.map(r => {
+      const idx = data.findIndex(x => x.id === r.id);
+      if (idx !== -1) {
+        data[idx] = { ...data[idx], ...r };
+        triggerMockChannelEvent(this.tableName, 'UPDATE', data[idx]);
+        return data[idx];
+      }
+      const item = {
+        id: r.id || crypto.randomUUID(),
+        created_at: r.created_at || new Date().toISOString(),
+        ...r
+      };
+      data.unshift(item);
+      triggerMockChannelEvent(this.tableName, 'INSERT', item);
+      return item;
+    });
+    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(data));
+    return { data: this.shouldReturnSingle ? records[0] || null : records, error: null };
   }
 }
 
@@ -361,40 +468,12 @@ class MockQueryBuilder {
     return { data: result, error: null };
   }
 
-  async insert(rowOrRows: any) {
-    const rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
-    const records = rows.map(r => ({
-      id: r.id || crypto.randomUUID(),
-      created_at: r.created_at || new Date().toISOString(),
-      ...r
-    }));
-    this.data.unshift(...records);
-    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
-    if (records.length > 0) {
-      triggerMockChannelEvent(this.tableName, 'INSERT', records[0]);
-    }
-    return { data: records, error: null };
+  insert(rowOrRows: any) {
+    return new MockInsertBuilder(this.tableName, rowOrRows);
   }
 
-  async upsert(rowOrRows: any) {
-    const rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
-    rows.forEach(r => {
-      const idx = this.data.findIndex(x => x.id === r.id);
-      if (idx !== -1) {
-        this.data[idx] = { ...this.data[idx], ...r };
-        triggerMockChannelEvent(this.tableName, 'UPDATE', this.data[idx]);
-      } else {
-        const item = {
-          id: r.id || crypto.randomUUID(),
-          created_at: new Date().toISOString(),
-          ...r
-        };
-        this.data.unshift(item);
-        triggerMockChannelEvent(this.tableName, 'INSERT', item);
-      }
-    });
-    localStorage.setItem(`mock_db_${this.tableName}`, JSON.stringify(this.data));
-    return { data: rows, error: null };
+  upsert(rowOrRows: any) {
+    return new MockUpsertBuilder(this.tableName, rowOrRows);
   }
 
   update(row: any) {
@@ -489,19 +568,11 @@ class MockAuth {
       } catch {}
     }
     const cleanEmail = email.toLowerCase().trim();
-    if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
-      if (password !== 'SommelierAI') {
-        throw new Error("Invalid login credentials");
-      }
-      accounts[cleanEmail] = { email: cleanEmail, password: 'SommelierAI' };
+    if (!accounts[cleanEmail]) {
+      accounts[cleanEmail] = { email: cleanEmail, password };
       localStorage.setItem('mock_accounts', JSON.stringify(accounts));
-    } else {
-      if (!accounts[cleanEmail]) {
-        accounts[cleanEmail] = { email: cleanEmail, password: password || '123456' };
-        localStorage.setItem('mock_accounts', JSON.stringify(accounts));
-      } else if (password && accounts[cleanEmail].password !== password) {
-        throw new Error("Invalid login credentials");
-      }
+    } else if (password && accounts[cleanEmail].password !== password) {
+      throw new Error("Invalid login credentials");
     }
 
     const user = {
@@ -518,14 +589,14 @@ class MockAuth {
       await profiles.insert({
         id: user.id,
         email: cleanEmail,
-        first_name: cleanEmail === 'simao@neurogrowthlabs.co.za' ? 'Simão' : cleanEmail.split('@')[0],
-        identity: cleanEmail === 'simao@neurogrowthlabs.co.za' ? 'Investor / Collector' : '',
-        role: cleanEmail === 'simao@neurogrowthlabs.co.za' ? 'super_admin' : 'explorer',
+        first_name: cleanEmail.split('@')[0],
+        identity: '',
+        role: isConfiguredAdminEmail(cleanEmail) ? 'super_admin' : 'explorer',
         taste_dna: {}
       });
     } else {
-      if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
-        await profiles.update({ role: 'super_admin', first_name: 'Simão', identity: 'Investor / Collector' }).eq('id', user.id);
+      if (isConfiguredAdminEmail(cleanEmail)) {
+        await profiles.update({ role: 'super_admin' }).eq('id', user.id);
       }
     }
 
@@ -536,22 +607,6 @@ class MockAuth {
 
   async signUp({ email, password }: any) {
     const cleanEmail = email.toLowerCase().trim();
-    if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
-      if (password !== 'SommelierAI') {
-        throw new Error("Invalid password for Super Admin. Please use 'SommelierAI'.");
-      }
-      const accountsStored = localStorage.getItem('mock_accounts');
-      let accounts: Record<string, any> = {};
-      if (accountsStored) {
-        try {
-          accounts = JSON.parse(accountsStored);
-        } catch {}
-      }
-      accounts[cleanEmail] = { email: cleanEmail, password: 'SommelierAI' };
-      localStorage.setItem('mock_accounts', JSON.stringify(accounts));
-      return this.signInWithPassword({ email, password: 'SommelierAI' });
-    }
-
     const accountsStored = localStorage.getItem('mock_accounts');
     let accounts: Record<string, any> = {};
     if (accountsStored) {
@@ -590,7 +645,7 @@ class MockSupabaseClient {
   removeChannel(channel: any) {}
 }
 
-const realSupabase = !shouldUseMock ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const realSupabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null;
 const mockSupabase = new MockSupabaseClient();
 
 class DynamicQueryBuilder {
@@ -725,7 +780,7 @@ class DynamicQueryBuilder {
   }
 
   async execute() {
-    if (mockSupabase?.auth?.currentUser?.email?.toLowerCase().trim() === 'simao@neurogrowthlabs.co.za') {
+    if (isMockDataEnabled && isConfiguredAdminEmail(mockSupabase?.auth?.currentUser?.email)) {
       return this.executeMock();
     }
     if (!shouldUseMock && realSupabase) {
@@ -740,17 +795,17 @@ class DynamicQueryBuilder {
         if (response && response.error) {
           const errCode = response.error.code || '';
           if (errCode !== 'PGRST116') {
-            console.warn(`[Supabase Error] Query failed on table ${this.tableName} (code: ${errCode}), hot-swapping to dynamic fallback DB.`, response.error);
-            return this.executeMock();
+            console.warn(`[Supabase Error] Query failed on table ${this.tableName} (code: ${errCode}).`, response.error);
+            return isMockDataEnabled ? this.executeMock() : response;
           }
         }
         return response;
       } catch (err: any) {
-        console.warn(`[Supabase Connection error] Failed query, falling back on mock storage for table ${this.tableName}:`, err);
-        return this.executeMock();
+        console.warn(`[Supabase Connection error] Failed query on table ${this.tableName}:`, err);
+        return isMockDataEnabled ? this.executeMock() : { data: null, error: err };
       }
     }
-    return this.executeMock();
+    return isMockDataEnabled ? this.executeMock() : { data: null, error: missingSupabaseError };
   }
 
   async executeMock() {
@@ -771,7 +826,7 @@ class DynamicQueryBuilder {
 class DynamicAuth {
   async getUser() {
     const mockUserRes = await mockSupabase.auth.getUser();
-    if (mockUserRes?.data?.user?.email?.toLowerCase().trim() === 'simao@neurogrowthlabs.co.za') {
+    if (isMockDataEnabled && isConfiguredAdminEmail(mockUserRes?.data?.user?.email)) {
       return mockUserRes;
     }
     if (!shouldUseMock && realSupabase) {
@@ -783,23 +838,22 @@ class DynamicAuth {
         if (res && res.error) {
           const errMsg = res.error.message || '';
           if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch')) {
-            return mockUserRes;
+            return isMockDataEnabled ? mockUserRes : res;
           }
         }
         return res;
       } catch {
-        return mockUserRes;
+        return isMockDataEnabled ? mockUserRes : { data: { user: null }, error: missingSupabaseError };
       }
     }
-    return mockUserRes;
+    return isMockDataEnabled ? mockUserRes : { data: { user: null }, error: missingSupabaseError };
   }
 
   onAuthStateChange(callback: (event: string, session: any) => void) {
     if (!shouldUseMock && realSupabase) {
       try {
         const subscription = realSupabase.auth.onAuthStateChange(callback);
-        // Also fire callback on mock to ensure local state sync
-        const mockSubscription = mockSupabase.auth.onAuthStateChange(callback);
+        const mockSubscription = isMockDataEnabled ? mockSupabase.auth.onAuthStateChange(callback) : null;
         return {
           data: {
             subscription: {
@@ -811,15 +865,19 @@ class DynamicAuth {
           }
         };
       } catch {
-        return mockSupabase.auth.onAuthStateChange(callback);
+        return isMockDataEnabled ? mockSupabase.auth.onAuthStateChange(callback) : {
+          data: { subscription: { unsubscribe: () => {} } }
+        };
       }
     }
-    return mockSupabase.auth.onAuthStateChange(callback);
+    return isMockDataEnabled ? mockSupabase.auth.onAuthStateChange(callback) : {
+      data: { subscription: { unsubscribe: () => {} } }
+    };
   }
 
   async signInWithPassword(credentials: any) {
     const cleanEmail = credentials?.email?.toLowerCase().trim();
-    if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
+    if (isMockDataEnabled && isConfiguredAdminEmail(cleanEmail)) {
       return mockSupabase.auth.signInWithPassword(credentials);
     }
     if (!shouldUseMock && realSupabase) {
@@ -828,21 +886,21 @@ class DynamicAuth {
         if (res && res.error) {
           const errMsg = res.error.message || '';
           if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch')) {
-            return mockSupabase.auth.signInWithPassword(credentials);
+            return isMockDataEnabled ? mockSupabase.auth.signInWithPassword(credentials) : res;
           }
         }
         return res;
       } catch (err) {
-        console.warn('Real Supabase login failed, utilizing secure local auth fallback:', err);
-        return mockSupabase.auth.signInWithPassword(credentials);
+        console.warn('Real Supabase login failed:', err);
+        return isMockDataEnabled ? mockSupabase.auth.signInWithPassword(credentials) : { data: null, error: err };
       }
     }
-    return mockSupabase.auth.signInWithPassword(credentials);
+    return isMockDataEnabled ? mockSupabase.auth.signInWithPassword(credentials) : { data: null, error: missingSupabaseError };
   }
 
   async signUp(credentials: any) {
     const cleanEmail = credentials?.email?.toLowerCase().trim();
-    if (cleanEmail === 'simao@neurogrowthlabs.co.za') {
+    if (isMockDataEnabled && isConfiguredAdminEmail(cleanEmail)) {
       return mockSupabase.auth.signUp(credentials);
     }
     if (!shouldUseMock && realSupabase) {
@@ -851,63 +909,69 @@ class DynamicAuth {
         if (res && res.error) {
           const errMsg = res.error.message || '';
           if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch')) {
-            return mockSupabase.auth.signUp(credentials);
+            return isMockDataEnabled ? mockSupabase.auth.signUp(credentials) : res;
           }
         }
         return res;
       } catch (err) {
-        console.warn('Real Supabase signup failed, using local auth fallback:', err);
-        return mockSupabase.auth.signUp(credentials);
+        console.warn('Real Supabase signup failed:', err);
+        return isMockDataEnabled ? mockSupabase.auth.signUp(credentials) : { data: null, error: err };
       }
     }
-    return mockSupabase.auth.signUp(credentials);
+    return isMockDataEnabled ? mockSupabase.auth.signUp(credentials) : { data: null, error: missingSupabaseError };
   }
 
   async signOut() {
     if (!shouldUseMock && realSupabase) {
       try {
         const res = await realSupabase.auth.signOut();
-        await mockSupabase.auth.signOut();
+        if (isMockDataEnabled) await mockSupabase.auth.signOut();
         return res;
       } catch {
-        return mockSupabase.auth.signOut();
+        return isMockDataEnabled ? mockSupabase.auth.signOut() : { error: missingSupabaseError };
       }
     }
-    return mockSupabase.auth.signOut();
+    return isMockDataEnabled ? mockSupabase.auth.signOut() : { error: missingSupabaseError };
   }
 }
 
 class DynamicSupabaseClient {
   auth = new DynamicAuth();
+  private noopChannel = {
+    on: (..._args: any[]) => this.noopChannel,
+    subscribe: (..._args: any[]) => this.noopChannel,
+    track: async (..._args: any[]) => undefined,
+    presenceState: () => ({})
+  };
 
   from(tableName: string) {
-    const isMockUser = mockSupabase?.auth?.currentUser;
+    const isMockUser = isMockDataEnabled && mockSupabase?.auth?.currentUser;
     const realBuilder = !isMockUser && !shouldUseMock && realSupabase ? realSupabase.from(tableName) : null;
     const mockBuilder = mockSupabase.from(tableName);
     return new DynamicQueryBuilder(tableName, realBuilder, mockBuilder);
   }
 
   channel(name: string) {
-    const isMockUser = mockSupabase?.auth?.currentUser;
-    if (isMockUser || shouldUseMock || !realSupabase) {
+    const isMockUser = isMockDataEnabled && mockSupabase?.auth?.currentUser;
+    if (isMockDataEnabled && (isMockUser || shouldUseMock || !realSupabase)) {
       return mockSupabase.channel(name);
     }
     try {
-      return realSupabase.channel(name);
+      return realSupabase?.channel(name) || (isMockDataEnabled ? mockSupabase.channel(name) : this.noopChannel);
     } catch {
-      return mockSupabase.channel(name);
+      return isMockDataEnabled ? mockSupabase.channel(name) : this.noopChannel;
     }
   }
 
   removeChannel(channel: any) {
-    const isMockUser = mockSupabase?.auth?.currentUser;
-    if (isMockUser || shouldUseMock || !realSupabase) {
+    const isMockUser = isMockDataEnabled && mockSupabase?.auth?.currentUser;
+    if (isMockDataEnabled && (isMockUser || shouldUseMock || !realSupabase)) {
       return mockSupabase.removeChannel(channel);
     }
     try {
-      return realSupabase.removeChannel(channel);
+      return realSupabase?.removeChannel(channel);
     } catch {
-      return mockSupabase.removeChannel(channel);
+      return isMockDataEnabled ? mockSupabase.removeChannel(channel) : undefined;
     }
   }
 }
