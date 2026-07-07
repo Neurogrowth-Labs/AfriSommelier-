@@ -393,67 +393,6 @@ alter table public.cupido_messages enable row level security;
 alter table public.cupido_virtual_dates enable row level security;
 alter table public.cupido_event_registrations enable row level security;
 
--- Drop old policies if re-running.
-do $$
-declare p record;
-begin
-  for p in select schemaname, tablename, policyname from pg_policies where schemaname = 'public' loop
-    execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
-  end loop;
-end $$;
-
--- Profiles
-create policy "profiles_select_own_or_admin" on public.profiles for select to authenticated using (id = auth.uid() or public.is_admin());
-create policy "profiles_insert_own" on public.profiles for insert to authenticated with check (id = auth.uid());
-create policy "profiles_update_own_or_admin" on public.profiles for update to authenticated using (id = auth.uid() or public.is_admin()) with check (id = auth.uid() or public.is_admin());
-
--- Public catalog/news reads, admin writes.
-create policy "wines_read_all" on public.wines for select using (true);
-create policy "wines_admin_write" on public.wines for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "news_read_all" on public.news for select using (true);
-create policy "news_admin_write" on public.news for all to authenticated using (public.is_admin()) with check (public.is_admin());
-
--- Per-user private resources.
-create policy "cellar_owner_all" on public.cellar for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "wishlist_owner_all" on public.wishlist for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "consumption_owner_all" on public.consumption for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "events_owner_all" on public.events for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "scans_owner_all" on public.scans for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-
--- Reviews are public-read; authenticated users write/manage own reviews.
-create policy "reviews_read_all" on public.reviews for select using (true);
-create policy "reviews_insert_own" on public.reviews for insert to authenticated with check (user_id = auth.uid());
-create policy "reviews_update_own" on public.reviews for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "reviews_delete_own" on public.reviews for delete to authenticated using (user_id = auth.uid());
-
--- Admin tables.
-create policy "support_tickets_admin_all" on public.support_tickets for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "support_tickets_user_insert" on public.support_tickets for insert to authenticated with check (user_id = auth.uid() or user_id is null);
-create policy "promotions_read_active" on public.promotions for select using (active = true or public.is_admin());
-create policy "promotions_admin_all" on public.promotions for all to authenticated using (public.is_admin()) with check (public.is_admin());
-
--- Cupido profiles and interactions.
-create policy "cupido_profiles_read_authenticated" on public.cupido_profiles for select to authenticated using (true);
-create policy "cupido_profiles_owner_all" on public.cupido_profiles for all to authenticated using (id = auth.uid()) with check (id = auth.uid());
-create policy "cupido_swipes_participant_all" on public.cupido_swipes for all to authenticated using (sender_id = auth.uid() or receiver_id = auth.uid()) with check (sender_id = auth.uid());
-create policy "cupido_matches_participant_read" on public.cupido_matches for select to authenticated using (user_one_id = auth.uid() or user_two_id = auth.uid());
-create policy "cupido_matches_system_insert" on public.cupido_matches for insert to authenticated with check (user_one_id = auth.uid() or user_two_id = auth.uid());
-create policy "cupido_conversations_participant_read" on public.cupido_conversations for select to authenticated using (user_one_id = auth.uid() or user_two_id = auth.uid());
-create policy "cupido_messages_conversation_participant" on public.cupido_messages for all to authenticated using (
-  exists (select 1 from public.cupido_conversations c where c.id = conversation_id and (c.user_one_id = auth.uid() or c.user_two_id = auth.uid()))
-) with check (sender_id = auth.uid());
-create policy "cupido_virtual_dates_participant_all" on public.cupido_virtual_dates for all to authenticated using (host_user_id = auth.uid() or guest_user_id = auth.uid()) with check (host_user_id = auth.uid());
-create policy "cupido_event_registrations_owner_all" on public.cupido_event_registrations for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-
--- -----------------------------------------------------------------------------
--- Realtime publication
--- -----------------------------------------------------------------------------
-do $$
-begin
-  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    create publication supabase_realtime;
-  end if;
-end $$;
 
 do $$
 declare tbl text;
