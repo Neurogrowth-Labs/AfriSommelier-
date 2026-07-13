@@ -133,6 +133,53 @@ async function startServer() {
     }
   });
 
+
+  const createCupidoReceipt = (provider: string, body: any = {}) => ({
+    subscriptionId: `cupido_${provider}_${Date.now()}`,
+    provider,
+    planName: body.planName || "Cupido Gold — Monthly AI Access",
+    amountZAR: Number(body.amountZAR || 20),
+    interval: "month",
+    payerEmail: body.payerEmail,
+    receiptUrl: `/receipts/cupido-${provider}-${Date.now()}`
+  });
+
+  // Cupido Gold subscription endpoints. Wire these to live PayPal/Stripe SDKs in production;
+  // the sandbox response keeps the client flow testable without exposing secret keys.
+  app.post("/api/cupido/subscriptions/google-pay", async (req, res) => {
+    try {
+      const { googlePayToken } = req.body || {};
+      if (!googlePayToken) {
+        return res.status(400).json({ message: "Google Pay token is required." });
+      }
+      res.json({ receipt: createCupidoReceipt("google_pay", req.body) });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Google Pay subscription failed." });
+    }
+  });
+
+  app.post("/api/cupido/subscriptions/paypal", async (req, res) => {
+    try {
+      res.json({
+        approvalUrl: process.env.PAYPAL_CUPIDO_PLAN_URL || null,
+        receipt: createCupidoReceipt("paypal", req.body)
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "PayPal subscription failed." });
+    }
+  });
+
+  app.post("/api/cupido/subscriptions/stripe", async (req, res) => {
+    try {
+      res.json({
+        checkoutUrl: process.env.STRIPE_CUPIDO_PRICE_URL || null,
+        receipt: createCupidoReceipt("stripe", req.body)
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Stripe subscription failed." });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
