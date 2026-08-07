@@ -9,7 +9,11 @@
     "start": "NODE_ENV=production tsx server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "test:e2e": "echo \"Playwright e2e spec scaffolding is pending @playwright/test installation in CI\"",
+    "test:unit": "tsx --test src/services/**/*.test.ts",
+    "test:integration": "tsx --test src/services/__tests__/supabaseSchema.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",

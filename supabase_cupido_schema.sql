@@ -393,6 +393,47 @@ alter table public.cupido_messages enable row level security;
 alter table public.cupido_virtual_dates enable row level security;
 alter table public.cupido_event_registrations enable row level security;
 
+-- Admin authorization policies for protected back-office tables.
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_admin_manage') then
+    create policy profiles_admin_manage on public.profiles for all using (public.is_admin()) with check (public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'wines' and policyname = 'wines_admin_manage') then
+    create policy wines_admin_manage on public.wines for all using (public.is_admin()) with check (public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'news' and policyname = 'news_admin_manage') then
+    create policy news_admin_manage on public.news for all using (public.is_admin()) with check (public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'support_tickets' and policyname = 'support_tickets_owner_read_create') then
+    create policy support_tickets_owner_read_create on public.support_tickets
+      for select using (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'support_tickets' and policyname = 'support_tickets_owner_insert') then
+    create policy support_tickets_owner_insert on public.support_tickets
+      for insert with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'support_tickets' and policyname = 'support_tickets_admin_manage') then
+    create policy support_tickets_admin_manage on public.support_tickets
+      for update using (public.is_admin()) with check (public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'promotions' and policyname = 'promotions_public_read_active') then
+    create policy promotions_public_read_active on public.promotions
+      for select using (active = true or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'promotions' and policyname = 'promotions_admin_manage') then
+    create policy promotions_admin_manage on public.promotions
+      for all using (public.is_admin()) with check (public.is_admin());
+  end if;
+end $$;
+
 
 do $$
 declare tbl text;

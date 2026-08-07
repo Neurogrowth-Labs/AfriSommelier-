@@ -686,7 +686,6 @@ Structure your JSON response exactly like this:
       });
 
       const parsed = extractJsonObject(responseText || "");
-      }
       const finalResult = normalizeScanResult(parsed, SCAN_FIXTURES[scanMode], scanMode);
 
       // Check if candidate confidence is below 85% to trigger a manual review alert prompt
@@ -981,8 +980,6 @@ Structure your JSON response exactly like this:
                 </motion.div>
               )}
             </AnimatePresence>
-
-            )}
 
             {/* Custom File Upload or Live Camera Capture */}
             <div className="flex flex-col items-center gap-3">
