@@ -5,6 +5,7 @@ import {
   Briefcase, Hotel, ChevronRight, Check, AlertCircle, Mail, Lock, LogIn, UserPlus, User
 } from 'lucide-react';
 import { supabase, loginWithEmail, registerWithEmail } from '../supabase';
+import { isConfiguredAdminEmail } from '../config';
 
 const identities = [
   { id: 'explorer', label: 'Wine Explorer', icon: <Grape className="w-6 h-6" /> },

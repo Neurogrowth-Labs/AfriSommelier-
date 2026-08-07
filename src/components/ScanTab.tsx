@@ -29,6 +29,7 @@ import { BrowserMultiFormatReader } from '@zxing/library';
 import { getScanHistory, saveScanToCache, clearScanHistory, CachedScan } from '../services/scanCache';
 
 type ScanMode = 'label' | 'menu' | 'winelist';
+const ENABLE_SCAN_DEMOS = import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true';
 
 const triggerHaptics = (success = true) => {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -685,8 +686,6 @@ Structure your JSON response exactly like this:
       });
 
       const parsed = extractJsonObject(responseText || "");
-      if (!parsed.type) {
-        throw new Error('AI scan returned an invalid response shape.');
       }
       const finalResult = normalizeScanResult(parsed, SCAN_FIXTURES[scanMode], scanMode);
 
@@ -714,7 +713,6 @@ Structure your JSON response exactly like this:
 
     } catch (e) {
       console.error("AI Scan failed:", e);
-      alert("The live AI scan could not be completed. Please try again or enter the wine manually.");
     } finally {
       clearInterval(interval);
       setIsProcessing(false);
@@ -984,41 +982,6 @@ Structure your JSON response exactly like this:
               )}
             </AnimatePresence>
 
-            {import.meta.env.DEV && (
-            <>
-              {/* Development-only one-tap scan fixtures */}
-            <div className="space-y-3 max-w-sm mx-auto w-full">
-              <span className="text-[10px] tracking-wider text-gray-500 font-mono uppercase block text-center">
-                Interactive One-Tap Scenarios
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <button 
-                  onClick={() => handleSampleClick('label')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">🍷</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Château Margaux</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Label Mode</span>
-                </button>
-                <button 
-                  onClick={() => handleSampleClick('menu')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">🥩</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Bistro Food Menu</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Menu Mode</span>
-                </button>
-                <button 
-                  onClick={() => handleSampleClick('winelist')}
-                  className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                >
-                  <span className="text-lg">📜</span>
-                  <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Fine Wine List</span>
-                  <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">List Analyzer</span>
-                </button>
-              </div>
-            </div>
-            </>
             )}
 
             {/* Custom File Upload or Live Camera Capture */}

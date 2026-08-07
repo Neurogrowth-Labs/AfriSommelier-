@@ -23,6 +23,7 @@ import AddWineCollectionScreen from './components/AddWineCollectionScreen';
 import ManualEntryScreen from './components/ManualEntryScreen';
 import SearchWineScreen from './components/SearchWineScreen';
 import GrapeKnowledgePage from './components/GrapeKnowledgePage';
+import { isConfiguredAdminEmail } from './config';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -52,9 +53,6 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          if (!data && error?.code === 'PGRST116') {
-             setIsOnboarding(true);
           } else {
              setIsOnboarding(false);
           }

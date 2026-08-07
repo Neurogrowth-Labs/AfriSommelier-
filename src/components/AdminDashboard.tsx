@@ -6,6 +6,7 @@ import {
   Lock, ArrowRight, BookOpen, Volume2, Landmark, HelpCircle, Save, Megaphone
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { ADMIN_EMAIL, isConfiguredAdminEmail } from '../config';
 
 interface UserProfile {
   id: string;
@@ -81,7 +82,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   // Fraud Control Alerts Trigger
   const [fraudThreatLevel, setFraudThreatLevel] = useState<'Low' | 'Moderate' | 'Critical'>('Low');
   const [securityLogs, setSecurityLogs] = useState<string[]>([
-    'Secure admin session initialized',
     'AI firewall state synchronized with DeepMind Engine',
     'Realtime PostgreSQL connection established successfully'
   ]);
@@ -126,11 +126,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       // 1. Fetch Users Profile Table
       const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
       if (!pErr && profiles) {
-        const mappedProfiles = profiles.map((p: any) => ({ role: 'explorer', ...p }));
-        setUsersList(mappedProfiles);
-      } else {
-        setUsersList([]);
-        if (pErr) triggerToast(`Unable to load profiles: ${pErr.message}`);
       }
 
       // 2. Fetch Wines Catalog
@@ -405,7 +400,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                 Master Shell
               </span>
             </h1>
-            <p className="text-xs text-gray-400 font-mono">Operator ID: role-based Supabase session</p>
           </div>
         </div>
 
@@ -699,7 +693,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           <td className="p-4">
                             <div className="font-semibold text-ivory flex items-center gap-2">
                               {user.first_name || 'N/A'}
-                              {user.role === 'super_admin' && (
                                 <span className="text-[9px] bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono">Admin</span>
                               )}
                             </div>
@@ -718,7 +711,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           <td className="p-4 text-gray-300">{user.identity || 'Standard Explorer'}</td>
                           <td className="p-4 text-gray-400 font-mono">{new Date(user.created_at).toLocaleDateString()}</td>
                           <td className="p-4 text-right space-x-1.5">
-                            {user.role !== 'super_admin' && (
                               <>
                                 <select 
                                   value={user.role || 'explorer'}

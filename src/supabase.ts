@@ -1,34 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-
-const hasValidSupabaseConfig = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  !supabaseUrl.includes('placeholder') &&
-  !supabaseUrl.includes('example.com') &&
-  supabaseUrl.startsWith('https://')
-);
-
-if (!hasValidSupabaseConfig) {
-  throw new Error(
-    'Missing production Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to run AfriSommelier with live data.'
-  );
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-});
+import { isConfiguredAdminEmail } from './config';
 
 export const loginWithEmail = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
