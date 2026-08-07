@@ -5,8 +5,8 @@ import {
   Search, Award, Sparkles, Filter, CheckCircle, XCircle, RefreshCw, BarChart2,
   Lock, ArrowRight, BookOpen, Volume2, Landmark, HelpCircle, Save, Megaphone
 } from 'lucide-react';
-import { supabase } from '../supabase';
-import { ADMIN_EMAIL, isConfiguredAdminEmail } from '../config';
+import { isCurrentUserAdmin, supabase } from '../supabase';
+import { isAdminRole } from '../services/adminAuthorization';
 
 interface UserProfile {
   id: string;
@@ -73,6 +73,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   
   // Loading & Filtering State
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   
@@ -110,9 +111,20 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     title: '', category: 'Local Spotlight', description: '', image: ''
   });
 
-  // Load baseline statistics and files
+  // Load baseline statistics and files only after the backend confirms admin access.
   useEffect(() => {
-    fetchAdminData();
+    const bootstrapAdmin = async () => {
+      setLoading(true);
+      const allowed = await isCurrentUserAdmin().catch(() => false);
+      setIsAuthorized(allowed);
+      if (allowed) {
+        await fetchAdminData();
+      } else {
+        setLoading(false);
+      }
+    };
+
+    bootstrapAdmin();
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -126,6 +138,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       // 1. Fetch Users Profile Table
       const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
       if (!pErr && profiles) {
+        setUsersList(profiles);
       }
 
       // 2. Fetch Wines Catalog
@@ -380,6 +393,17 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     w.grape.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.region.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (!loading && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-[#F2E7D5] flex flex-col items-center justify-center p-8 text-center">
+        <Shield className="w-12 h-12 text-red-400 mb-4" />
+        <h1 className="text-xl font-serif text-white mb-2">Admin access denied</h1>
+        <p className="text-sm text-gray-400 mb-6">Your Supabase role does not include admin privileges.</p>
+        <button onClick={onBack} className="px-4 py-2 rounded-full border border-gold-500/30 text-gold-400 text-xs uppercase tracking-widest">Return Home</button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#09090A] text-ivory font-sans flex flex-col relative pb-24">
@@ -693,6 +717,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                           <td className="p-4">
                             <div className="font-semibold text-ivory flex items-center gap-2">
                               {user.first_name || 'N/A'}
+                              {isAdminRole(user.role) && (
                                 <span className="text-[9px] bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono">Admin</span>
                               )}
                             </div>
@@ -739,7 +764,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
                                   </button>
                                 )}
                               </>
-                            )}
                           </td>
                         </tr>
                       ))}

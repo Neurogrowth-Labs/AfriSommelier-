@@ -2,28 +2,35 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User, Bell, Calendar, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from './supabase';
-import HomeTab from './components/HomeTab';
-import DiscoverTab from './components/DiscoverTab';
-import ScanTab from './components/ScanTab';
-import CellarTab from './components/CellarTab';
-import SommelierChat from './components/SommelierChat';
-import CupidoTab from './components/CupidoTab';
-import WineDetail from './components/WineDetail';
-import TrendingTab from './components/TrendingTab';
-import ProfileTab from './components/ProfileTab';
-import PairWithDinnerPage from './components/PairWithDinnerPage';
-import PairingEngine from './components/PairingEngine';
 import OnboardingScreen from './components/OnboardingScreen';
-import AdminDashboard from './components/AdminDashboard';
-import AddWineCollectionScreen from './components/AddWineCollectionScreen';
-import ManualEntryScreen from './components/ManualEntryScreen';
-import SearchWineScreen from './components/SearchWineScreen';
-import GrapeKnowledgePage from './components/GrapeKnowledgePage';
-import { isConfiguredAdminEmail } from './config';
+
+
+const HomeTab = lazy(() => import('./components/HomeTab'));
+const DiscoverTab = lazy(() => import('./components/DiscoverTab'));
+const ScanTab = lazy(() => import('./components/ScanTab'));
+const CellarTab = lazy(() => import('./components/CellarTab'));
+const SommelierChat = lazy(() => import('./components/SommelierChat'));
+const CupidoTab = lazy(() => import('./components/CupidoTab'));
+const WineDetail = lazy(() => import('./components/WineDetail'));
+const TrendingTab = lazy(() => import('./components/TrendingTab'));
+const ProfileTab = lazy(() => import('./components/ProfileTab'));
+const PairWithDinnerPage = lazy(() => import('./components/PairWithDinnerPage'));
+const PairingEngine = lazy(() => import('./components/PairingEngine'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AddWineCollectionScreen = lazy(() => import('./components/AddWineCollectionScreen'));
+const ManualEntryScreen = lazy(() => import('./components/ManualEntryScreen'));
+const SearchWineScreen = lazy(() => import('./components/SearchWineScreen'));
+const GrapeKnowledgePage = lazy(() => import('./components/GrapeKnowledgePage'));
+
+const ScreenFallback = () => (
+  <div className="min-h-[60dvh] flex items-center justify-center text-gold-400 text-xs font-mono uppercase tracking-[0.25em]">
+    Loading cellar room...
+  </div>
+);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -52,13 +59,7 @@ export default function App() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-        if (user) {
-          } else {
-             setIsOnboarding(false);
-          }
-        } else {
-          setIsOnboarding(true);
-        }
+        setIsOnboarding(!user);
       } catch (error) {
         console.error("Error connecting to Supabase: ", error);
       } finally {
@@ -287,6 +288,7 @@ export default function App() {
       </div>
 
       <main className="w-full flex-1 h-[100dvh] overflow-y-auto hide-scrollbar relative z-10 custom-scrollbar">
+        <Suspense fallback={<ScreenFallback />}>
         {selectedGrapeSlug ? (
           <GrapeKnowledgePage 
             slug={selectedGrapeSlug} 
@@ -365,6 +367,7 @@ export default function App() {
             )}
           </>
         )}
+        </Suspense>
       </main>
 
       {/* Floating Glass Navigation Bar - Hidden in Admin Console Mode & Immersive Add workflows */}
@@ -394,7 +397,9 @@ export default function App() {
 
       <AnimatePresence>
         {selectedWine && (
-          <WineDetail wine={selectedWine} onClose={() => setSelectedWine(null)} />
+          <Suspense fallback={null}>
+            <WineDetail wine={selectedWine} onClose={() => setSelectedWine(null)} />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>
