@@ -83,19 +83,19 @@ export default function ManualEntryScreen({ onBack, onNavigate, onSelectWine }: 
     try {
       // Step 1: Generate AI Tasting Notes
       setEnhancementStage('Generating AI Tasting Notes...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+
 
       // Step 2: Generate Pairing Suggestions
       setEnhancementStage('Generating Advanced Pairing Suggestions...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+
 
       // Step 3: Estimate Market Price
       setEnhancementStage('Estimating Current Johannesburg and Global Market pricing...');
-      await new Promise(resolve => setTimeout(resolve, 1200));
+
 
       // Step 4: Predict Aging Potential
       setEnhancementStage('Predicting optimal aging window, peak, and hold curves...');
-      await new Promise(resolve => setTimeout(resolve, 1200));
+
 
       // Step 5: Find Similar Wines
       setEnhancementStage('Finding similar wines within Cape vineyards...');
@@ -129,13 +129,7 @@ export default function ManualEntryScreen({ onBack, onNavigate, onSelectWine }: 
       try {
         aiEnrichment = JSON.parse(responseText);
       } catch {
-        aiEnrichment = {
-          aiTastingNotes: `A classic representation of ${region} ${wineType}. Showcases ripe dark berry fruit with elegant undertones of fynbos and toasted oak.`,
-          pairingSuggestions: "Pan-seared springbok loin, traditional slow-cooked beef potjiekos, or mature Gouda cheese.",
-          estimatedPrice: price ? `R ${price}` : "R 480",
-          agingPotential: `Peak window estimated: ${Number(vintage) ? Number(vintage) + 8 : 2030} - ${Number(vintage) ? Number(vintage) + 15 : 2038}. Optimal holding window.`,
-          similarWines: ["Meerlust Rubicon", "Rust en Vrede Cabernet Sauvignon"]
-        };
+        throw new Error('AI enrichment returned invalid JSON; wine was not saved with synthetic tasting data.');
       }
 
       setEnhancementStage('Securing data inside Supabase profiles and cellar...');
@@ -172,7 +166,7 @@ export default function ManualEntryScreen({ onBack, onNavigate, onSelectWine }: 
 
     } catch (error) {
       console.error("Manual save failed:", error);
-      alert("Encountered error, save fallback applied.");
+      alert("Unable to save this wine to the live cellar. Please try again.");
       setIsEnhancing(false);
     }
   };

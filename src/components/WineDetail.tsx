@@ -361,7 +361,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
                 alert("✅ Added to Cellar!");
               } catch (e) {
                 console.error(e);
-                alert("Failed code check sync, verified mock added to cellar state.");
+                alert("Unable to add this wine to your live cellar. Please check your connection and try again.");
               }
             }}
             className="flex-1 py-3.5 bg-gold-500 text-wine-950 rounded-xl font-serif font-bold text-center hover:scale-[0.98] transition-transform text-sm shadow-[0_4px_20px_rgba(198,169,107,0.25)]"

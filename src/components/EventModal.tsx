@@ -21,7 +21,7 @@ export default function EventModal({ onClose }: { onClose: () => void }) {
       const { error } = await supabase.from('events').insert({
         user_id: user.id,
         title,
-        date,
+        event_date: new Date(`${date}T${time || '00:00'}`).toISOString(),
         time,
         location,
         created_at: new Date().toISOString()

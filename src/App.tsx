@@ -53,15 +53,8 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          if (isConfiguredAdminEmail(user.email)) {
-            setIsOnboarding(false);
           } else {
-            const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (!data && error?.code === 'PGRST116') {
-               setIsOnboarding(true);
-            } else {
-               setIsOnboarding(false);
-            }
+             setIsOnboarding(false);
           }
         } else {
           setIsOnboarding(true);
@@ -180,20 +173,25 @@ export default function App() {
 
         if (!error && regs && regs.length > 0) {
           const registeredEventIds = regs.map((r: any) => r.event_id);
-          if (registeredEventIds.includes('bordeaux')) {
-            addNotification(
-              'event',
-              'Approaching Event! 📅',
-              'Vintage Bordeaux Blind Tasting at Delaire Graff is approaching on June 25, 2026 (in 3 days)!'
-            );
-          }
-          if (registeredEventIds.includes('cabernet')) {
-            addNotification(
-              'event',
-              'Approaching Event! 📅',
-              'Cabernet Collective & Artisan Braai Night at Kanonkop is approaching on June 27, 2026 (in 5 days)!'
-            );
-          }
+          const now = new Date();
+          const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const { data: events } = await supabase
+            .from('events')
+            .select('id, title, event_date, location')
+            .gte('event_date', now.toISOString())
+            .lte('event_date', soon.toISOString());
+
+          events
+            ?.filter((event: any) => registeredEventIds.includes(event.id))
+            .forEach((event: any) => {
+              const eventDate = new Date(event.event_date);
+              const daysAway = Math.max(0, Math.ceil((eventDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+              addNotification(
+                'event',
+                'Approaching Event! 📅',
+                `${event.title} at ${event.location || 'the listed venue'} is approaching on ${eventDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })} (${daysAway} day${daysAway === 1 ? '' : 's'} away).`
+              );
+            });
         }
       } catch (err) {
         console.warn("Approaching events checking warning:", err);
@@ -204,20 +202,9 @@ export default function App() {
       if (isMounted) checkApproachingEvents();
     }, 3000);
 
-    const simulatedTimer = setTimeout(() => {
-      if (isMounted) {
-        addNotification(
-          'match',
-          'New Wine Match! 🍷',
-          'Emma from Stellenbosch Vineyard District just liked you back! Conjoining taste DNA matches at 94%!'
-        );
-      }
-    }, 15000);
-
     return () => {
       isMounted = false;
       clearTimeout(eventsTimer);
-      clearTimeout(simulatedTimer);
       if (matchesChannel) {
         try {
           supabase.removeChannel(matchesChannel);

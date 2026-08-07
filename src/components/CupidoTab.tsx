@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Heart, 
@@ -16,6 +16,8 @@ import {
   Map, 
   Award, 
   Crown, 
+  CreditCard,
+  ShieldCheck,
   TrendingUp, 
   MessageSquare, 
   ThumbsUp, 
@@ -163,7 +165,7 @@ export default function CupidoTab() {
   const [activeDateStep, setActiveDateStep] = useState<'invite' | 'round1' | 'round2' | 'round3' | 'completed'>('invite');
   const [dateScore, setDateScore] = useState(0);
   const [showGoldModal, setShowGoldModal] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(() => localStorage.getItem('cupido_gold_subscription') === 'active');
   
   // Event registration states
   const [registeredEventIds, setRegisteredEventIds] = useState<string[]>([]);
@@ -245,78 +247,7 @@ export default function CupidoTab() {
         const user = authData?.user;
         if (!user) return;
 
-        // 1. Ingest/seeding fallback routines so Supabase tables are never blank on new connection
-        const seedProfiles = [
-          {
-            id: 'e0a1b2c3-4d5e-6f7a-8b9c-0d1e2f3a4b5c',
-            full_name: 'Emma',
-            photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'French Wine Enthusiast',
-            personality: 'The Collector',
-            old_world_affinity: 95,
-            bold_reds_affinity: 88,
-            luxury_dining_affinity: 92,
-            adventure_affinity: 81,
-            favorite_wines: ['Pinot Noir', 'Champagne', 'Barolo'],
-            favorite_experiences: ['Tuscany', 'Michelin Dining', 'Opera'],
-            location_name: 'Stellenbosch, South Africa',
-            is_premium: true
-          },
-          {
-            id: 'a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
-            full_name: 'Alex',
-            photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Bold Red Collector',
-            onConflict: 'id',
-            personality: 'The Connoisseur',
-            old_world_affinity: 80,
-            bold_reds_affinity: 96,
-            luxury_dining_affinity: 85,
-            adventure_affinity: 89,
-            favorite_wines: ['Syrah/Shiraz', 'Cabernet Sauvignon', 'Malbec'],
-            favorite_experiences: ['Stellenbosch Braai', 'Helicopter Vineyard Tour', 'Napa Valley'],
-            location_name: 'Franschhoek, South Africa',
-            is_premium: false
-          },
-          {
-            id: 's2c3d4e5-6f7a-8b9c-0d1e-2f3a4b5c6d7e',
-            full_name: 'Sophia',
-            photo_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Vintage Champagne Specialist',
-            personality: 'The Avant-Garde Sommelier',
-            old_world_affinity: 90,
-            bold_reds_affinity: 60,
-            luxury_dining_affinity: 98,
-            adventure_affinity: 85,
-            favorite_wines: ['Blanc de Blancs', 'Pet-Nat', 'Chardonnay'],
-            favorite_experiences: ['Franschhoek Tram', 'Oyster Shucking', 'Art Galleries'],
-            location_name: 'Constantia, South Africa',
-            is_premium: true
-          },
-          {
-            id: 'c3d4e5f6-7a8b-9c0d-1e2f-3a4b5c6d7e8f',
-            full_name: 'Chloe',
-            photo_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop',
-            wine_type: 'Eclectic Orange explorer',
-            personality: 'The Naturalist Rebel',
-            old_world_affinity: 75,
-            bold_reds_affinity: 70,
-            luxury_dining_affinity: 72,
-            adventure_affinity: 95,
-            favorite_wines: ['Amphora Chenin Blanc', 'Barolo', 'Cinsault'],
-            favorite_experiences: ['Swartland Organic Harvest', 'Record Bars', 'Glamping'],
-            location_name: 'Cape Town, South Africa',
-            is_premium: false
-          }
-        ];
-
-        // Seed profiles to ensure tables are active and persistent
-        for (const p of seedProfiles) {
-          try {
-            await supabase.from('cupido_profiles').upsert(p);
-          } catch {}
-        }
-
+        // 1. Ensure the signed-in user has a live Cupido profile for realtime matching
         // Check/create user's own profile in cupido_profiles to manage auth rules
         let { data: myCupidoProfile } = await supabase
           .from('cupido_profiles')
@@ -930,7 +861,11 @@ export default function CupidoTab() {
             <motion.button 
               onClick={() => {
                 triggerVibrate();
-                setHasEntered(true);
+                if (isPremium) {
+                  setHasEntered(true);
+                } else {
+                  setShowGoldModal(true);
+                }
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -945,7 +880,7 @@ export default function CupidoTab() {
         {/* Premium Gold Promo Modal Overlay */}
         <AnimatePresence>
           {showGoldModal && (
-            <GoldPremiumModal onClose={() => setShowGoldModal(false)} onUpgrade={() => { setIsPremium(true); setShowGoldModal(false); }} />
+            <GoldPremiumModal onClose={() => setShowGoldModal(false)} onUpgrade={() => { localStorage.setItem('cupido_gold_subscription', 'active'); setIsPremium(true); setShowGoldModal(false); setHasEntered(true); }} />
           )}
         </AnimatePresence>
       </div>
@@ -1320,7 +1255,7 @@ export default function CupidoTab() {
                   }}
                   className="w-full bg-[#8B1538] hover:bg-[#A31C43] text-white text-xs font-serif font-bold py-2.5 rounded-xl transition-all shadow-lg cursor-pointer"
                 >
-                  Start Simulated Tasting Date with {currentProfile.name}
+                  Start Virtual Tasting Date with {currentProfile.name}
                 </button>
               </motion.div>
             )}
@@ -1920,78 +1855,228 @@ export default function CupidoTab() {
   );
 }
 
-// ---------------- CUPIDO PREMIUM GOLD PAYWALL MODAL ----------------
+// ---------------- CUPIDO PREMIUM GOLD PAYWALL MODAL + PAYMENT FLOW ----------------
+type PaymentProvider = 'google_pay' | 'paypal' | 'stripe';
+
+type CupidoReceipt = {
+  subscriptionId: string;
+  provider: PaymentProvider;
+  planName: string;
+  amountZAR: number;
+  interval: 'month';
+  payerEmail?: string;
+  receiptUrl?: string;
+};
+
+const CUPIDO_GOLD_PLAN = {
+  name: 'Cupido Gold — Monthly AI Access',
+  priceZAR: 20,
+  quantity: 1,
+};
+
+const providerLabels: Record<PaymentProvider, string> = {
+  google_pay: 'Google Pay',
+  paypal: 'PayPal',
+  stripe: 'Stripe Card',
+};
+
 function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgrade: () => void }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
-    >
-      <div className="absolute inset-0 bg-gradient-to-t from-[#8B1538]/20 via-[#4A001F]/5 to-transparent pointer-events-none" />
+  const [receipt, setReceipt] = useState<CupidoReceipt | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [processingProvider, setProcessingProvider] = useState<PaymentProvider | null>(null);
 
-      <motion.div 
-        initial={{ scale: 0.95, y: 15 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 15 }}
-        className="bg-[#0D0A0A] border border-[#D4AF37]/40 rounded-2xl max-w-sm w-full p-6 text-center space-y-5 relative my-8"
-      >
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-405 hover:text-white transition-colors cursor-pointer"
-          type="button"
-        >
-          <X size={20} />
-        </button>
+  const completeUpgrade = (paymentReceipt: CupidoReceipt) => {
+    setReceipt(paymentReceipt);
+    notifyUser(
+      'info',
+      'Cupido Gold Activated ✨',
+      `Your R${paymentReceipt.amountZAR.toFixed(2)}/month ${providerLabels[paymentReceipt.provider]} subscription is active.`
+    );
+    setTimeout(onUpgrade, 1200);
+  };
 
-        <div className="p-3.5 rounded-full bg-gradient-to-br from-[#D4AF37]/10 to-[#8B1538]/20 border border-[#D4AF37]/30 inline-block">
-          <Crown className="text-[#D4AF37] animate-pulse" size={40} />
-        </div>
+  const startHostedFlow = async (provider: Exclude<PaymentProvider, 'google_pay'>) => {
+    setError(null);
+    setProcessingProvider(provider);
+    try {
+      const res = await fetch(`/api/cupido/subscriptions/${provider}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planName: CUPIDO_GOLD_PLAN.name, amountZAR: CUPIDO_GOLD_PLAN.priceZAR }),
+      });
 
-        <div className="space-y-1">
-          <span className="text-[9px] font-mono tracking-[0.3em] text-[#D4AF37] font-black uppercase">ENOVIQ GOLD MEMBERSHIP</span>
-          <h3 className="text-xl font-serif font-black text-white">Upgrade to Cupido Gold</h3>
-          <p className="text-xs text-gray-400">Unlock maximum pairing accuracy and social privileges.</p>
-        </div>
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.message || `Unable to start ${providerLabels[provider]} checkout.`);
 
-        {/* Feature List */}
-        <div className="space-y-2.5 text-left text-xs font-serif text-gray-300">
-          <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>Unlimited Connections</strong>: Swipe all Cape Wine routes</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>Real-time AI Matchmaker</strong>: Advanced matching filters</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>Simulated Virtual Wine Dates</strong>: Host custom date rooms</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>Luxury Wine Compatibility Reports</strong>: Download Wine DNA</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#D4AF37]" />
-            <span><strong>VIP Wine Networking</strong>: Attend exclusive meetups</span>
-          </div>
-        </div>
+      // In production this URL is a Stripe Checkout or PayPal approval URL.
+      // The sandbox endpoint returns an already-confirmed receipt so the app is usable without secrets.
+      completeUpgrade(payload.receipt);
+    } catch (err: any) {
+      setError(err?.message || 'Payment failed. Please try again.');
+    } finally {
+      setProcessingProvider(null);
+    }
+  };
 
-        <div className="pt-2">
-          <button 
-            type="button"
-            onClick={onUpgrade}
-            className="w-full bg-gradient-to-r from-[#D4AF37] via-[#F8F5F2] to-[#D4AF37] text-black font-serif font-black text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-lg shadow-[#D4AF37]/15 cursor-pointer border-0"
-          >
-            Activate Instant Gold
-          </button>
-          <p className="text-[9.5px] font-mono text-gray-500 mt-2">
-            Cancel anytime. Simulating payment credentials via Enoviq Sandbox environment.
-          </p>
+  if (receipt) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="bg-[#0D0A0A] border border-[#D4AF37]/40 rounded-2xl max-w-sm w-full p-6 text-center space-y-4">
+          <div className="p-3.5 rounded-full bg-green-500/10 border border-green-500/30 inline-block">
+            <ShieldCheck className="text-green-400" size={42} />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono tracking-[0.3em] text-[#D4AF37] font-black uppercase">PAYMENT CONFIRMED</span>
+            <h3 className="text-xl font-serif font-black text-white">Cupido Gold Active</h3>
+          </div>
+          <div className="bg-white/[0.04] border border-white/5 rounded-xl p-3 text-xs text-left space-y-1.5">
+            <p><strong className="text-[#D4AF37]">Plan:</strong> {receipt.planName}</p>
+            <p><strong className="text-[#D4AF37]">Recurring fee:</strong> R{receipt.amountZAR.toFixed(2)} / month</p>
+            <p><strong className="text-[#D4AF37]">Paid with:</strong> {providerLabels[receipt.provider]}</p>
+            <p className="text-gray-500 font-mono text-[10px]">Subscription: {receipt.subscriptionId}</p>
+          </div>
+          <p className="text-[10px] text-gray-500 font-mono">Opening Cupido AI platform…</p>
         </div>
       </motion.div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="absolute inset-0 bg-gradient-to-t from-[#8B1538]/20 via-[#4A001F]/5 to-transparent pointer-events-none" />
+      <motion.div initial={{ scale: 0.95, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 15 }} className="bg-[#0D0A0A] border border-[#D4AF37]/40 rounded-2xl max-w-sm w-full p-6 text-center space-y-5 relative my-8">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-405 hover:text-white transition-colors cursor-pointer" type="button"><X size={20} /></button>
+        <div className="p-3.5 rounded-full bg-gradient-to-br from-[#D4AF37]/10 to-[#8B1538]/20 border border-[#D4AF37]/30 inline-block"><Crown className="text-[#D4AF37] animate-pulse" size={40} /></div>
+        <div className="space-y-1">
+          <span className="text-[9px] font-mono tracking-[0.3em] text-[#D4AF37] font-black uppercase">ENOVIQ GOLD MEMBERSHIP</span>
+          <h3 className="text-xl font-serif font-black text-white">Pay R20/month to unlock Cupido AI</h3>
+          <p className="text-xs text-gray-400">A recurring Cupido Gold subscription is required before accessing matches, AI dates, VIP meetups and compatibility reports.</p>
+        </div>
+        <div className="space-y-2.5 text-left text-xs font-serif text-gray-300">
+          {['Unlimited Connections across Cape Wine routes', 'Real-time AI Matchmaker and advanced filters', 'Virtual Wine Dates and premium AI icebreakers', 'Luxury Wine Compatibility Reports', 'VIP Wine Networking and exclusive meetups'].map((feature) => (
+            <div className="flex items-center gap-2" key={feature}><Check size={14} className="text-[#D4AF37]" /><span>{feature}</span></div>
+          ))}
+        </div>
+        <div className="bg-black/30 border border-white/10 rounded-2xl p-3 space-y-3 text-left">
+          <div className="flex items-center justify-between">
+            <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring monthly billing</p></div>
+            <p className="text-lg text-[#D4AF37] font-serif font-black">R20</p>
+          </div>
+          <GooglePayButton ticket={CUPIDO_GOLD_PLAN} onSuccess={completeUpgrade} onError={(err) => setError(err.message || 'Google Pay failed.')} />
+          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('paypal')} className="w-full bg-[#ffc439] hover:bg-[#f5b800] disabled:opacity-60 text-[#003087] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'paypal' ? 'Opening PayPal…' : 'PayPal recurring checkout'}</button>
+          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('stripe')} className="w-full bg-[#635bff] hover:bg-[#554ee8] disabled:opacity-60 text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'stripe' ? 'Opening Stripe…' : 'Stripe card subscription'}</button>
+        </div>
+        {error && <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}
+        <p className="text-[9.5px] font-mono text-gray-500">Sandbox flow creates a backend subscription receipt. Replace server secrets and hosted URLs for production.</p>
+      </motion.div>
     </motion.div>
+  );
+}
+
+const GOOGLE_PAY_ENVIRONMENT = 'TEST';
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_XXXXXXXXXXXXXXXXXXXXXXXX';
+const CHARGE_ENDPOINT = '/api/cupido/subscriptions/google-pay';
+
+const baseCardPaymentMethod = {
+  type: 'CARD',
+  parameters: {
+    allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+    allowedCardNetworks: ['AMEX', 'DISCOVER', 'INTERAC', 'JCB', 'MASTERCARD', 'VISA'],
+  },
+};
+
+const cardPaymentMethod = {
+  ...baseCardPaymentMethod,
+  tokenizationSpecification: {
+    type: 'PAYMENT_GATEWAY',
+    parameters: { gateway: 'stripe', 'stripe:version': '2024-06-20', 'stripe:publishableKey': STRIPE_PUBLISHABLE_KEY },
+  },
+};
+
+declare global {
+  interface Window { google?: any; }
+}
+
+function getGooglePaymentsClient() {
+  return new window.google.payments.api.PaymentsClient({ environment: GOOGLE_PAY_ENVIRONMENT });
+}
+
+function buildPaymentDataRequest(ticket: { name: string; priceZAR: number; quantity: number }) {
+  const totalPrice = (ticket.priceZAR * ticket.quantity).toFixed(2);
+  return {
+    apiVersion: 2,
+    apiVersionMinor: 0,
+    allowedPaymentMethods: [cardPaymentMethod],
+    merchantInfo: { merchantId: '12345678901234567890', merchantName: 'Cupido Gold' },
+    transactionInfo: {
+      countryCode: 'ZA', currencyCode: 'ZAR', totalPriceStatus: 'FINAL', totalPrice, totalPriceLabel: 'Monthly recurring fee',
+      displayItems: [{ label: ticket.name, type: 'LINE_ITEM', price: ticket.priceZAR.toFixed(2) }],
+    },
+    shippingAddressRequired: false,
+    emailRequired: true,
+  };
+}
+
+function GooglePayButton({ ticket, onSuccess, onError }: { ticket: { name: string; priceZAR: number; quantity: number }, onSuccess: (receipt: CupidoReceipt) => void, onError: (error: Error) => void }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const [loadingPay, setLoadingPay] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    function init() {
+      const paymentsClient = getGooglePaymentsClient();
+      paymentsClient.isReadyToPay({ apiVersion: 2, apiVersionMinor: 0, allowedPaymentMethods: [baseCardPaymentMethod] })
+        .then((response: any) => {
+          if (cancelled || !response.result) return;
+          const button = paymentsClient.createButton({
+            onClick: () => handleClick(paymentsClient), buttonColor: 'black', buttonType: 'pay', buttonSizeMode: 'fill', buttonRadius: 8,
+          });
+          containerRef.current?.replaceChildren(button);
+          setReady(true);
+        })
+        .catch((err: Error) => onError?.(err));
+    }
+    if (window.google?.payments?.api) init();
+    else {
+      const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://pay.google.com/gp/p/js/pay.js"]');
+      if (existingScript) existingScript.addEventListener('load', init, { once: true });
+      else {
+        const script = document.createElement('script');
+        script.src = 'https://pay.google.com/gp/p/js/pay.js';
+        script.async = true;
+        script.onload = init;
+        script.onerror = () => onError?.(new Error('Failed to load Google Pay script'));
+        document.body.appendChild(script);
+      }
+    }
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleClick(paymentsClient: any) {
+    setLoadingPay(true);
+    try {
+      const paymentData = await paymentsClient.loadPaymentData(buildPaymentDataRequest(ticket));
+      const googlePayToken = paymentData.paymentMethodData.tokenizationData.token;
+      const payerEmail = paymentData.email;
+      const res = await fetch(CHARGE_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ googlePayToken, payerEmail, planName: ticket.name, quantity: ticket.quantity, amountZAR: ticket.priceZAR * ticket.quantity }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.message || 'Payment failed. Please try again.');
+      onSuccess?.(payload.receipt);
+    } catch (err: any) {
+      if (err?.statusCode !== 'CANCELED') onError?.(err);
+    } finally {
+      setLoadingPay(false);
+    }
+  }
+
+  return (
+    <div>
+      <div ref={containerRef} style={{ minHeight: 48, margin: '8px 0', opacity: loadingPay ? 0.6 : 1 }} aria-live="polite" />
+      {!ready && <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>Loading Google Pay…</p>}
+    </div>
   );
 }

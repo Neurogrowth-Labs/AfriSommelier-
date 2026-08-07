@@ -272,8 +272,8 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
     ]
   };
 
-  // Predefined gorgeous realistic high-fidelity samples for easy demonstration
-  const SAMPLES = {
+  // Development-only scan fixtures used for local QA and JSON shape normalization.
+  const SCAN_FIXTURES = {
     label: {
       type: 'label',
       wines: [
@@ -405,9 +405,9 @@ export default function ScanTab({ onSelectWine }: { onSelectWine: (wine: any) =>
 
     setTimeout(() => {
       clearInterval(interval);
-      setScanResult(SAMPLES[mode]);
+      setScanResult(SCAN_FIXTURES[mode]);
       if (mode === 'label') {
-        setPreviewUrl(SAMPLES.label.wines[0].image);
+        setPreviewUrl(SCAN_FIXTURES.label.wines[0].image);
       } else if (mode === 'menu') {
         setPreviewUrl("https://images.unsplash.com/photo-1543007630-9710e4a00a20?q=80&w=800&auto=format&fit=crop");
       } else {
@@ -686,17 +686,13 @@ Structure your JSON response exactly like this:
       });
 
       const parsed = extractJsonObject(responseText || "");
-      let finalResult = SAMPLES[scanMode];
-      
-      // If result looks incomplete, fallback to high-quality template values matching the chosen mode
-      if (parsed.type) {
-        finalResult = normalizeScanResult(parsed, SAMPLES[scanMode], scanMode);
       }
+      const finalResult = normalizeScanResult(parsed, SCAN_FIXTURES[scanMode], scanMode);
 
       // Check if candidate confidence is below 85% to trigger a manual review alert prompt
       const finalAsAny = finalResult as any;
       if (finalAsAny.type === 'label' && finalAsAny.wines?.[0]) {
-        const wineConf = finalAsAny.wines[0].confidence ?? 0.82; // Simulated low-confidence fallback if missing
+        const wineConf = finalAsAny.wines[0].confidence ?? 0;
         if (wineConf < 0.85) {
           // Trigger attention-seeking double haptic feedback and show manual verification form
           triggerHaptics(false);
@@ -717,21 +713,6 @@ Structure your JSON response exactly like this:
 
     } catch (e) {
       console.error("AI Scan failed:", e);
-      if (!ENABLE_SCAN_DEMOS) {
-        alert("Scan analysis failed. Please check your AI provider configuration and try a clearer image.");
-        setIsScanning(true);
-        return;
-      }
-      const fallbackResult = SAMPLES[scanMode];
-      setScanResult(fallbackResult);
-      
-      // Save fallbacks to offline cache as well
-      await saveScanToCache({
-        timestamp: Date.now(),
-        mode: scanMode,
-        previewUrl: processedUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop",
-        result: fallbackResult
-      });
     } finally {
       clearInterval(interval);
       setIsProcessing(false);
@@ -831,8 +812,7 @@ Structure your JSON response exactly like this:
       onSelectWine(wine);
     } catch (err: any) {
       console.error("Error adding to cellar database:", err);
-      alert("Added temporarily to review details. Please make sure authentication setup is active for persistent database storing.");
-      onSelectWine(wine);
+      alert("Unable to save this wine to your live cellar. Please try again.");
     }
   };
 
@@ -1002,39 +982,6 @@ Structure your JSON response exactly like this:
               )}
             </AnimatePresence>
 
-            {/* Local-only interactive demos */}
-            {ENABLE_SCAN_DEMOS && (
-              <div className="space-y-3 max-w-sm mx-auto w-full">
-                <span className="text-[10px] tracking-wider text-gray-500 font-mono uppercase block text-center">
-                  Interactive One-Tap Scenarios
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <button 
-                    onClick={() => handleSampleClick('label')}
-                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                  >
-                    <span className="text-lg">🍷</span>
-                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Château Margaux</span>
-                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Label Mode</span>
-                  </button>
-                  <button 
-                    onClick={() => handleSampleClick('menu')}
-                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                  >
-                    <span className="text-lg">🥩</span>
-                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Bistro Food Menu</span>
-                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">Menu Mode</span>
-                  </button>
-                  <button 
-                    onClick={() => handleSampleClick('winelist')}
-                    className="flex flex-col items-center justify-center p-3 bg-[#0A0A0A] hover:bg-[#121212] border border-[#C8A24A]/10 hover:border-[#C8A24A]/40 rounded-xl transition-all group"
-                  >
-                    <span className="text-lg">📜</span>
-                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-white mt-1.5 leading-tight">Fine Wine List</span>
-                    <span className="text-[8px] text-[#C8A24A] font-mono mt-0.5">List Analyzer</span>
-                  </button>
-                </div>
-              </div>
             )}
 
             {/* Custom File Upload or Live Camera Capture */}

@@ -202,35 +202,6 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
         await registerWithEmail(email, password);
       }
       
-      const cleanEmail = email.toLowerCase().trim();
-      if (isConfiguredAdminEmail(cleanEmail)) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('profiles').upsert({
-            id: user.id,
-            email: cleanEmail,
-            first_name: 'Simão',
-            identity: 'Investor / Collector',
-            role: 'super_admin',
-            sweet_dry: '30',
-            light_full: '80',
-            fruity_earthy: '50',
-            taste_dna: {
-              Boldness: 80,
-              Tannin: 80,
-              Sweetness: 30,
-              Acidity: 70,
-              Fruitiness: 50,
-              Earthiness: 50
-            },
-            created_at: new Date().toISOString()
-          }, { onConflict: 'id' });
-        }
-        setIsSaving(false);
-        onComplete();
-        return;
-      }
-
       await saveProfileAndProceed();
     } catch (error: any) {
       console.error("Auth failed:", error);
