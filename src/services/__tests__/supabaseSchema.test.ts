@@ -14,3 +14,11 @@ test('schema grants support and promotion mutations only through admin policies'
   assert.match(schema, /create policy promotions_admin_manage on public\.promotions/);
   assert.match(schema, /public\.is_admin\(\)/);
 });
+
+
+test('schema includes KYC workflow storage and assurance helpers', () => {
+  assert.match(schema, /create table if not exists public\.kyc_verifications/);
+  assert.match(schema, /create or replace function public\.has_approved_kyc/);
+  assert.match(schema, /create policy kyc_admin_review on public\.kyc_verifications/);
+  assert.match(schema, /create policy kyc_owner_submit on public\.kyc_verifications/);
+});

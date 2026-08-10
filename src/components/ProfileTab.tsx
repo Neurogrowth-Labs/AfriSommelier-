@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Settings, Award, Flame, LogOut, Wine, Activity, MapPin, Grape, BookOpen, Hexagon, Shield, Star } from 'lucide-react';
 import { supabase } from '../supabase';
+import { getCurrentKycVerification, submitKycVerification, type KycVerification } from '../services/kyc';
 
 export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const [stats, setStats] = useState({ 
@@ -28,6 +29,11 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
   const [identity, setIdentity] = useState<string>('A passionate explorer of South African terroirs. Curator of fine Cap Classiques and robust Stellenbosch reds.');
   const [profileUrl, setProfileUrl] = useState<string | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [kyc, setKyc] = useState<KycVerification | null>(null);
+  const [kycDocumentType, setKycDocumentType] = useState('passport');
+  const [kycDocumentLast4, setKycDocumentLast4] = useState('');
+  const [kycSubmitting, setKycSubmitting] = useState(false);
+  const [kycError, setKycError] = useState<string | null>(null);
   const [editFirstName, setEditFirstName] = useState('');
   const [editIdentity, setEditIdentity] = useState('');
 
@@ -40,7 +46,12 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
       if (!user) return;
       
       try {
-        const { data: profileData } = await supabase.from('profiles').select('first_name, identity, taste_dna, avatar_url').eq('id', user.id).single();
+        const [profileResult, kycResult] = await Promise.all([
+          supabase.from('profiles').select('first_name, identity, taste_dna, avatar_url').eq('id', user.id).single(),
+          getCurrentKycVerification().catch(() => null),
+        ]);
+        const { data: profileData } = profileResult;
+        if (isMounted) setKyc(kycResult);
         if (profileData && isMounted) {
           if (profileData.first_name) {
              setFirstName(profileData.first_name);
@@ -202,6 +213,30 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
     }
   };
 
+  const handleKycSubmit = async () => {
+    setKycSubmitting(true);
+    setKycError(null);
+    try {
+      const cleanLast4 = kycDocumentLast4.trim();
+      if (!/^[A-Za-z0-9]{4}$/.test(cleanLast4)) {
+        throw new Error('Enter the final 4 characters of the selected document.');
+      }
+
+      const nextKyc = await submitKycVerification({
+        documentType: kycDocumentType,
+        documentLast4: cleanLast4.toUpperCase(),
+        selfieAttestation: true,
+        consent: true,
+        source: 'AfriSommelier profile security center',
+      });
+      setKyc(nextKyc);
+    } catch (error: any) {
+      setKycError(error.message || 'Unable to submit KYC verification.');
+    } finally {
+      setKycSubmitting(false);
+    }
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -322,6 +357,45 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
                 )}
               </div>
             </div>
+          </div>
+
+
+          {/* KYC Access Security */}
+          <div className="bg-[#121820] border border-gold-500/20 rounded-3xl p-6 relative overflow-hidden shadow-lg">
+            <div className="flex items-start gap-3 mb-5">
+              <div className="w-11 h-11 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500">
+                <Shield size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-serif text-white">KYC Security Center</h3>
+                <p className="text-gray-400 text-sm mt-1">Verify your identity before using high-trust access features like scans, social matching, events, and cellar transactions.</p>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-black/30 border border-white/10 p-4 mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">Verification Status</span>
+                <span className={`text-xs px-3 py-1 rounded-full border uppercase tracking-widest ${kyc?.status === 'approved' ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10' : kyc?.status === 'rejected' ? 'text-rose-300 border-rose-500/40 bg-rose-500/10' : 'text-gold-300 border-gold-500/40 bg-gold-500/10'}`}>
+                  {kyc?.status?.replace('_', ' ') || 'Not started'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-3">Assurance level {kyc?.assurance_level ?? 0}/3 • Risk tier {kyc?.risk_level || 'low'}</p>
+            </div>
+            {kyc?.status !== 'approved' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={kycDocumentType} onChange={(e) => setKycDocumentType(e.target.value)} className="bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-gold-500">
+                    <option value="passport">Passport</option>
+                    <option value="national_id">National ID</option>
+                    <option value="drivers_license">Driver's License</option>
+                  </select>
+                  <input value={kycDocumentLast4} onChange={(e) => setKycDocumentLast4(e.target.value.slice(0, 4))} placeholder="Last 4" className="bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-gold-500" />
+                </div>
+                {kycError && <p className="text-xs text-rose-300">{kycError}</p>}
+                <button onClick={handleKycSubmit} disabled={kycSubmitting} className="w-full bg-gold-500 text-black p-3 rounded-xl font-bold text-sm hover:bg-gold-400 disabled:opacity-60 transition-colors">
+                  {kycSubmitting ? 'Submitting Secure Review...' : 'Submit KYC Review'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Core Analytics Grid */}

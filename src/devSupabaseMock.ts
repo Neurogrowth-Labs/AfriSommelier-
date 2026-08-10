@@ -31,7 +31,7 @@ export const createDevSupabaseMock = () => ({
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => undefined } } }),
   },
   from: () => createQuery(),
-  rpc: async (fn: string) => ({ data: fn === 'is_admin' ? false : null, error: null }),
+  rpc: async (fn: string) => ({ data: fn === 'is_admin' ? false : fn === 'current_user_kyc_assurance' ? 0 : fn === 'has_approved_kyc' ? false : null, error: null }),
   channel: () => ({
     on: function () { return this; },
     subscribe: function () { return this; },
