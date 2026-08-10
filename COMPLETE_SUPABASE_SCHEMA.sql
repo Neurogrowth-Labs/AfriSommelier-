@@ -142,6 +142,29 @@ create table if not exists public.scans (
   created_at timestamptz not null default now()
 );
 
+
+-- -----------------------------------------------------------------------------
+-- KYC/KYB identity assurance inspired by open-source Ballerine-style case workflows
+-- -----------------------------------------------------------------------------
+create table if not exists public.kyc_verifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  workflow_type text not null default 'kyc' check (workflow_type in ('kyc', 'kyb')),
+  status text not null default 'not_started' check (status in ('not_started', 'pending', 'in_review', 'approved', 'rejected', 'expired')),
+  risk_level text not null default 'low' check (risk_level in ('low', 'medium', 'high')),
+  assurance_level integer not null default 0 check (assurance_level between 0 and 3),
+  submitted_at timestamptz,
+  reviewed_at timestamptz,
+  reviewer_id uuid references auth.users(id) on delete set null,
+  evidence jsonb not null default '{}'::jsonb,
+  checks jsonb not null default '{}'::jsonb,
+  rejection_reason text,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, workflow_type)
+);
+
 -- -----------------------------------------------------------------------------
 -- Admin operations
 -- -----------------------------------------------------------------------------
@@ -257,6 +280,7 @@ create index if not exists consumption_user_date_idx on public.consumption(user_
 create index if not exists events_user_event_date_idx on public.events(user_id, event_date);
 create index if not exists reviews_wine_created_idx on public.reviews(wine_name, created_at desc);
 create index if not exists scans_user_timestamp_idx on public.scans(user_id, timestamp desc);
+create index if not exists kyc_verifications_user_status_idx on public.kyc_verifications(user_id, status, assurance_level);
 create index if not exists cupido_swipes_receiver_idx on public.cupido_swipes(receiver_id, swipe_type);
 create index if not exists cupido_event_registrations_user_idx on public.cupido_event_registrations(user_id);
 
@@ -273,6 +297,8 @@ drop trigger if exists events_set_updated_at on public.events;
 create trigger events_set_updated_at before update on public.events for each row execute function public.set_updated_at();
 drop trigger if exists news_set_updated_at on public.news;
 create trigger news_set_updated_at before update on public.news for each row execute function public.set_updated_at();
+drop trigger if exists kyc_verifications_set_updated_at on public.kyc_verifications;
+create trigger kyc_verifications_set_updated_at before update on public.kyc_verifications for each row execute function public.set_updated_at();
 drop trigger if exists support_tickets_set_updated_at on public.support_tickets;
 create trigger support_tickets_set_updated_at before update on public.support_tickets for each row execute function public.set_updated_at();
 drop trigger if exists promotions_set_updated_at on public.promotions;

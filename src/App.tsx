@@ -43,6 +43,7 @@ export default function App() {
   const [initialChatState, setInitialChatState] = useState<{ role: 'user' | 'model', text: string, autoVoice?: boolean } | null>(null);
   const [cellarSubView, setCellarSubView] = useState<'cellar' | 'wishlist'>('cellar');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [kycAssurance, setKycAssurance] = useState(0);
 
   const addNotification = (type: 'match' | 'event' | 'info', title: string, message: string) => {
     const id = Math.random().toString();
@@ -60,6 +61,12 @@ export default function App() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         setIsOnboarding(!user);
+        if (user) {
+          const { data } = await supabase.rpc('current_user_kyc_assurance');
+          setKycAssurance(Number(data || 0));
+        } else {
+          setKycAssurance(0);
+        }
       } catch (error) {
         console.error("Error connecting to Supabase: ", error);
       } finally {
@@ -235,6 +242,16 @@ export default function App() {
     return <OnboardingScreen onComplete={() => setIsOnboarding(false)} />;
   }
 
+  const requireVerifiedAccess = (tab: string) => {
+    if (kycAssurance >= 1) {
+      setActiveTab(tab);
+      return;
+    }
+
+    addNotification('info', 'KYC Required', 'Please submit KYC in your Dossier before accessing high-trust features.');
+    setActiveTab('profile');
+  };
+
   return (
     <div className="min-h-[100dvh] bg-[#050505] text-[#F2E7D5] flex flex-col items-center justify-between relative overflow-hidden selection:bg-[#C8A24A]/30 font-sans border-0 sm:border sm:border-[#C8A24A]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] lg:max-w-md lg:mx-auto">
       {/* Frame Gold Border Effect (Mobile Outline) */}
@@ -307,14 +324,14 @@ export default function App() {
               if (tab === 'ai' && state) setInitialChatState(state);
             }} />}
             {activeTab === 'discover' && <DiscoverTab onSelectWine={setSelectedWine} initialState={initialDiscoverState} />}
-            {activeTab === 'scan' && <ScanTab onSelectWine={setSelectedWine} />}
+            {activeTab === 'scan' && (kycAssurance >= 1 ? <ScanTab onSelectWine={setSelectedWine} /> : <ProfileTab onNavigate={(tab) => setActiveTab(tab)} />)}
             {activeTab === 'ai' && <SommelierChat onClose={() => setActiveTab('home')} initialMessage={initialChatState} />}
             {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
               setActiveTab(tab);
               if (tab === 'discover' && state) setInitialDiscoverState(state);
               if (tab === 'ai' && state) setInitialChatState(state);
             }} />}
-            {activeTab === 'cupido' && <CupidoTab />}
+            {activeTab === 'cupido' && (kycAssurance >= 1 ? <CupidoTab /> : <ProfileTab onNavigate={(tab) => setActiveTab(tab)} />)}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => {
               setActiveTab(tab);
               if (tab === 'cellar') setCellarSubView('cellar');
@@ -381,7 +398,7 @@ export default function App() {
             {/* Floating Center Scan Button */}
             <div className="relative -top-5">
               <button 
-                onClick={() => setActiveTab('scan')}
+                onClick={() => requireVerifiedAccess('scan')}
                 className="w-14 h-14 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
               >
                 <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
@@ -389,7 +406,7 @@ export default function App() {
               </button>
             </div>
 
-            <NavItem icon={<Heart size={20} className={activeTab === 'cupido' ? 'text-[#8B1538] fill-[#8B1538]' : ''} />} active={activeTab === 'cupido'} onClick={() => setActiveTab('cupido')} />
+            <NavItem icon={<Heart size={20} className={activeTab === 'cupido' ? 'text-[#8B1538] fill-[#8B1538]' : ''} />} active={activeTab === 'cupido'} onClick={() => requireVerifiedAccess('cupido')} />
             <NavItem icon={<User size={20} />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
           </nav>
         </div>

@@ -142,6 +142,29 @@ create table if not exists public.scans (
   created_at timestamptz not null default now()
 );
 
+
+-- -----------------------------------------------------------------------------
+-- KYC/KYB identity assurance inspired by open-source Ballerine-style case workflows
+-- -----------------------------------------------------------------------------
+create table if not exists public.kyc_verifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  workflow_type text not null default 'kyc' check (workflow_type in ('kyc', 'kyb')),
+  status text not null default 'not_started' check (status in ('not_started', 'pending', 'in_review', 'approved', 'rejected', 'expired')),
+  risk_level text not null default 'low' check (risk_level in ('low', 'medium', 'high')),
+  assurance_level integer not null default 0 check (assurance_level between 0 and 3),
+  submitted_at timestamptz,
+  reviewed_at timestamptz,
+  reviewer_id uuid references auth.users(id) on delete set null,
+  evidence jsonb not null default '{}'::jsonb,
+  checks jsonb not null default '{}'::jsonb,
+  rejection_reason text,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, workflow_type)
+);
+
 -- -----------------------------------------------------------------------------
 -- Admin operations
 -- -----------------------------------------------------------------------------
@@ -257,6 +280,7 @@ create index if not exists consumption_user_date_idx on public.consumption(user_
 create index if not exists events_user_event_date_idx on public.events(user_id, event_date);
 create index if not exists reviews_wine_created_idx on public.reviews(wine_name, created_at desc);
 create index if not exists scans_user_timestamp_idx on public.scans(user_id, timestamp desc);
+create index if not exists kyc_verifications_user_status_idx on public.kyc_verifications(user_id, status, assurance_level);
 create index if not exists cupido_swipes_receiver_idx on public.cupido_swipes(receiver_id, swipe_type);
 create index if not exists cupido_event_registrations_user_idx on public.cupido_event_registrations(user_id);
 
@@ -273,6 +297,8 @@ drop trigger if exists events_set_updated_at on public.events;
 create trigger events_set_updated_at before update on public.events for each row execute function public.set_updated_at();
 drop trigger if exists news_set_updated_at on public.news;
 create trigger news_set_updated_at before update on public.news for each row execute function public.set_updated_at();
+drop trigger if exists kyc_verifications_set_updated_at on public.kyc_verifications;
+create trigger kyc_verifications_set_updated_at before update on public.kyc_verifications for each row execute function public.set_updated_at();
 drop trigger if exists support_tickets_set_updated_at on public.support_tickets;
 create trigger support_tickets_set_updated_at before update on public.support_tickets for each row execute function public.set_updated_at();
 drop trigger if exists promotions_set_updated_at on public.promotions;
@@ -330,6 +356,31 @@ as $$
   select coalesce(public.current_user_role() in ('lead_sommelier', 'admin', 'super_admin'), false)
 $$;
 
+
+create or replace function public.current_user_kyc_assurance()
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(max(assurance_level), 0)
+  from public.kyc_verifications
+  where user_id = auth.uid()
+    and status = 'approved'
+    and (expires_at is null or expires_at > now())
+$$;
+
+create or replace function public.has_approved_kyc(required_level integer default 1)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.current_user_kyc_assurance() >= required_level, false)
+$$;
+
 -- Create matches and conversations when mutual likes exist.
 create or replace function public.create_cupido_match_on_mutual_like()
 returns trigger
@@ -383,6 +434,7 @@ alter table public.events enable row level security;
 alter table public.reviews enable row level security;
 alter table public.news enable row level security;
 alter table public.scans enable row level security;
+alter table public.kyc_verifications enable row level security;
 alter table public.support_tickets enable row level security;
 alter table public.promotions enable row level security;
 alter table public.cupido_profiles enable row level security;
@@ -406,6 +458,28 @@ begin
 
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'news' and policyname = 'news_admin_manage') then
     create policy news_admin_manage on public.news for all using (public.is_admin()) with check (public.is_admin());
+  end if;
+
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'kyc_verifications' and policyname = 'kyc_owner_read') then
+    create policy kyc_owner_read on public.kyc_verifications
+      for select using (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'kyc_verifications' and policyname = 'kyc_owner_submit') then
+    create policy kyc_owner_submit on public.kyc_verifications
+      for insert with check (auth.uid() = user_id and status in ('not_started', 'pending'));
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'kyc_verifications' and policyname = 'kyc_owner_update_pending') then
+    create policy kyc_owner_update_pending on public.kyc_verifications
+      for update using (auth.uid() = user_id and status in ('not_started', 'pending', 'rejected'))
+      with check (auth.uid() = user_id and status in ('pending', 'in_review'));
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'kyc_verifications' and policyname = 'kyc_admin_review') then
+    create policy kyc_admin_review on public.kyc_verifications
+      for all using (public.is_admin()) with check (public.is_admin());
   end if;
 
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'support_tickets' and policyname = 'support_tickets_owner_read_create') then
@@ -440,7 +514,7 @@ declare tbl text;
 begin
   foreach tbl in array array[
     'profiles','wines','cellar','wishlist','consumption','events','reviews','news','scans',
-    'support_tickets','promotions','cupido_profiles','cupido_swipes','cupido_matches',
+    'kyc_verifications','support_tickets','promotions','cupido_profiles','cupido_swipes','cupido_matches',
     'cupido_conversations','cupido_messages','cupido_virtual_dates','cupido_event_registrations'
   ] loop
     begin
