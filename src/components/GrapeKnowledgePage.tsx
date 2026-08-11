@@ -410,6 +410,15 @@ interface Props {
   onSelectWine: (wine: any) => void;
 }
 
+const navigateToPath = (path: string) => {
+  if (`${window.location.pathname}${window.location.search}` === path) {
+    window.history.replaceState(null, '', path);
+  } else {
+    window.history.pushState(null, '', path);
+  }
+  window.dispatchEvent(new Event('popstate'));
+};
+
 export default function GrapeKnowledgePage({ slug, onBack, onSelectWine }: Props) {
   const grape = GRAPES_KNOWLEDGE[slug.toLowerCase()] || GRAPES_KNOWLEDGE['pinotage'];
   const [activeAromaCategory, setActiveAromaCategory] = useState<string>(Object.keys(grape.aromaWheel)[0]);
@@ -834,11 +843,7 @@ export default function GrapeKnowledgePage({ slug, onBack, onSelectWine }: Props
                   <p className="text-xs text-gray-400 font-serif leading-relaxed mb-4">"{sim.reason}"</p>
                 </div>
                 <button
-                  onClick={() => {
-                    window.history.pushState(null, '', `/grapes/${sim.slug}`);
-                    // trigger refresh of content since URL changes
-                    window.dispatchEvent(new Event('popstate'));
-                  }}
+                  onClick={() => navigateToPath(`/grapes/${sim.slug}`)}
                   className="py-2.5 bg-wine-900/60 hover:bg-wine-900 border border-white/10 text-ivory text-[10px] uppercase font-mono tracking-widest rounded-xl transition-colors font-bold"
                 >
                   View {sim.name} Profile
