@@ -12,6 +12,15 @@ import { WINE_COURSE_KNOWLEDGE } from '../data/educationalCourseKnowledge';
 import { WINE_WISE_KNOWLEDGE } from '../data/wineWiseKnowledge';
 import { callOpenRouter } from '../services/openRouterService';
 
+const navigateToPath = (path: string) => {
+  if (`${window.location.pathname}${window.location.search}` === path) {
+    window.history.replaceState(null, '', path);
+  } else {
+    window.history.pushState(null, '', path);
+  }
+  window.dispatchEvent(new Event('popstate'));
+};
+
 export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWine: (wine: any) => void, initialState?: any }) {
   const [showGiftEngine, setShowGiftEngine] = useState(false);
   const [showPartyMode, setShowPartyMode] = useState(false);
@@ -273,12 +282,12 @@ export default function DiscoverTab({ onSelectWine, initialState }: { onSelectWi
       <div className="mb-12">
         <h3 className="text-lg font-serif italic text-[#C8A24A] px-6 mb-4">Grapes</h3>
         <div className="flex flex-wrap gap-3 px-6">
-          <GrapeChip name="Pinotage 🇿🇦" onClick={() => { window.history.pushState(null, '', '/grapes/pinotage'); window.dispatchEvent(new Event('popstate')); }} />
-          <GrapeChip name="Chenin Blanc" onClick={() => { window.history.pushState(null, '', '/grapes/chenin-blanc'); window.dispatchEvent(new Event('popstate')); }} />
-          <GrapeChip name="Shiraz" onClick={() => { window.history.pushState(null, '', '/grapes/shiraz'); window.dispatchEvent(new Event('popstate')); }} />
-          <GrapeChip name="Cabernet Sauvignon" onClick={() => { window.history.pushState(null, '', '/grapes/cabernet-sauvignon'); window.dispatchEvent(new Event('popstate')); }} />
-          <GrapeChip name="Merlot" onClick={() => { window.history.pushState(null, '', '/grapes/merlot'); window.dispatchEvent(new Event('popstate')); }} />
-          <GrapeChip name="Chardonnay" onClick={() => { window.history.pushState(null, '', '/grapes/chardonnay'); window.dispatchEvent(new Event('popstate')); }} />
+          <GrapeChip name="Pinotage 🇿🇦" onClick={() => navigateToPath('/grapes/pinotage')} />
+          <GrapeChip name="Chenin Blanc" onClick={() => navigateToPath('/grapes/chenin-blanc')} />
+          <GrapeChip name="Shiraz" onClick={() => navigateToPath('/grapes/shiraz')} />
+          <GrapeChip name="Cabernet Sauvignon" onClick={() => navigateToPath('/grapes/cabernet-sauvignon')} />
+          <GrapeChip name="Merlot" onClick={() => navigateToPath('/grapes/merlot')} />
+          <GrapeChip name="Chardonnay" onClick={() => navigateToPath('/grapes/chardonnay')} />
         </div>
       </div>
 

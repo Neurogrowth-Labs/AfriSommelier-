@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User, Bell, Calendar, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from './supabase';
@@ -25,6 +25,54 @@ const AddWineCollectionScreen = lazy(() => import('./components/AddWineCollectio
 const ManualEntryScreen = lazy(() => import('./components/ManualEntryScreen'));
 const SearchWineScreen = lazy(() => import('./components/SearchWineScreen'));
 const GrapeKnowledgePage = lazy(() => import('./components/GrapeKnowledgePage'));
+
+
+type AppRouteState = {
+  tab?: string;
+  discoverState?: any;
+  chatState?: { role: 'user' | 'model', text: string, autoVoice?: boolean } | null;
+  cellarView?: 'cellar' | 'wishlist';
+};
+
+const TAB_ROUTES: Record<string, string> = {
+  home: '/',
+  discover: '/explore',
+  scan: '/scan',
+  ai: '/sommelier',
+  cellar: '/cellar',
+  cupido: '/cupido',
+  profile: '/profile',
+  trending: '/trending',
+  pairings: '/pairings',
+  'pairing-engine': '/pairings/engine',
+  admin: '/admin',
+  'collection-add': '/cellar/add',
+  'collection-manual': '/cellar/add/manual',
+  search: '/cellar/add/search',
+};
+
+const routeForTab = (tab: string, state?: any) => {
+  if (tab === 'discover' && state?.query) return `/explore?query=${encodeURIComponent(state.query)}`;
+  if (tab === 'discover' && state?.filter) return `/explore?filter=${encodeURIComponent(state.filter)}`;
+  if (tab === 'ai' && state?.text) return `/sommelier?prompt=${encodeURIComponent(state.text)}`;
+  if (tab === 'cellar' && state?.view === 'wishlist') return '/cellar/wishlist';
+  return TAB_ROUTES[tab] || '/';
+};
+
+const pathToTab = (path: string) => {
+  if (path === '/' || path === '') return 'home';
+  if (path === '/scan') return 'scan';
+  if (path === '/cellar' || path === '/cellar/wishlist') return 'cellar';
+  if (path === '/cupido') return 'cupido';
+  if (path === '/profile') return 'profile';
+  if (path === '/pairings') return 'pairings';
+  if (path === '/pairings/engine') return 'pairing-engine';
+  if (path === '/admin') return 'admin';
+  if (path === '/cellar/add') return 'collection-add';
+  if (path === '/cellar/add/manual') return 'collection-manual';
+  if (path === '/cellar/add/search') return 'search';
+  return null;
+};
 
 const ScreenFallback = () => (
   <div className="min-h-[60dvh] flex items-center justify-center text-gold-400 text-xs font-mono uppercase tracking-[0.25em]">
@@ -83,55 +131,85 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const handleUrlRouting = () => {
-      const path = window.location.pathname;
-      const params = new URLSearchParams(window.location.search);
+  const applyRoute = useCallback(() => {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    const historyState = (window.history.state || {}) as AppRouteState;
 
-      if (path.startsWith('/pair')) {
-        setActiveTab('ai');
-        const meal = params.get('meal');
-        const mood = params.get('mood');
-        if (meal) {
-          setInitialChatState({ role: 'user', text: `I am having ${meal} for dinner. What South African wine would you pair with this?` });
-        } else if (mood) {
-          setInitialChatState({ role: 'user', text: `I am in a ${mood} mood. Recommend a South African wine.` });
-        } else {
-          setInitialChatState({ role: 'model', text: `What are you eating tonight? Let me help you pair a wine.` });
-        }
-        setSelectedGrapeSlug(null);
-      } else if (path.startsWith('/explore')) {
-        setActiveTab('discover');
-        setSelectedGrapeSlug(null);
-      } else if (path.startsWith('/trending') || path.startsWith('/search/trending') || path.startsWith('/sa')) {
-        setActiveTab('trending');
-        setSelectedGrapeSlug(null);
-        
-        // Determine initial filter based on route
-        if (path.includes('/news')) setInitialDiscoverState({ filter: 'News' });
-        else if (path.includes('/culture')) setInitialDiscoverState({ filter: 'Culture' });
-        else if (path.includes('/markets') || path.includes('/finance')) setInitialDiscoverState({ filter: 'Finance' });
-        else if (path.includes('/wine')) setInitialDiscoverState({ filter: 'Wine' });
-        else if (path.includes('/tech')) setInitialDiscoverState({ filter: 'Tech' });
-        else setInitialDiscoverState({ filter: 'All Trends' });
-      } else if (path.startsWith('/grapes/')) {
-        setActiveTab('discover');
-        const grape = path.split('/')[2];
-        setSelectedGrapeSlug(grape);
-      } else if (path.startsWith('/sommelier')) {
-        setActiveTab('ai');
-        const voice = params.get('voice');
-        setInitialChatState({ role: 'model', text: "Tell me your mood, budget, and meal, and I'll find the perfect wine.", autoVoice: voice === 'true' });
-        setSelectedGrapeSlug(null);
-      } else {
-        setSelectedGrapeSlug(null);
-      }
+    setSelectedGrapeSlug(null);
+    setInitialDiscoverState(null);
+    setInitialChatState(null);
+
+    if (path.startsWith('/grapes/')) {
+      setActiveTab('discover');
+      setSelectedGrapeSlug(decodeURIComponent(path.split('/')[2] || ''));
+      return;
+    }
+
+    if (path.startsWith('/pair') && path !== '/pairings' && path !== '/pairings/engine') {
+      setActiveTab('ai');
+      const meal = params.get('meal');
+      const mood = params.get('mood');
+      if (meal) setInitialChatState({ role: 'user', text: `I am having ${meal} for dinner. What South African wine would you pair with this?` });
+      else if (mood) setInitialChatState({ role: 'user', text: `I am in a ${mood} mood. Recommend a South African wine.` });
+      else setInitialChatState({ role: 'model', text: `What are you eating tonight? Let me help you pair a wine.` });
+      return;
+    }
+
+    if (path.startsWith('/explore')) {
+      setActiveTab('discover');
+      const query = params.get('query');
+      const filter = params.get('filter');
+      setInitialDiscoverState(historyState.discoverState || (query ? { query } : filter ? { filter } : null));
+      return;
+    }
+
+    if (path.startsWith('/trending') || path.startsWith('/search/trending') || path.startsWith('/sa')) {
+      setActiveTab('trending');
+      if (path.includes('/news')) setInitialDiscoverState({ filter: 'News' });
+      else if (path.includes('/culture')) setInitialDiscoverState({ filter: 'Culture' });
+      else if (path.includes('/markets') || path.includes('/finance')) setInitialDiscoverState({ filter: 'Finance' });
+      else if (path.includes('/wine')) setInitialDiscoverState({ filter: 'Wine' });
+      else if (path.includes('/tech')) setInitialDiscoverState({ filter: 'Tech' });
+      else setInitialDiscoverState({ filter: params.get('filter') || historyState.discoverState?.filter || 'All Trends' });
+      return;
+    }
+
+    if (path.startsWith('/sommelier')) {
+      setActiveTab('ai');
+      const voice = params.get('voice');
+      const prompt = params.get('prompt');
+      setInitialChatState(historyState.chatState || (prompt ? { role: 'user', text: prompt } : { role: 'model', text: "Tell me your mood, budget, and meal, and I'll find the perfect wine.", autoVoice: voice === 'true' }));
+      return;
+    }
+
+    const tab = pathToTab(path) || 'home';
+    setActiveTab(tab);
+    setCellarSubView(path === '/cellar/wishlist' || historyState.cellarView === 'wishlist' ? 'wishlist' : 'cellar');
+  }, []);
+
+  const navigateTo = useCallback((tab: string, state?: any, options?: { replace?: boolean }) => {
+    const nextUrl = routeForTab(tab, state);
+    const nextState: AppRouteState = {
+      tab,
+      discoverState: tab === 'discover' || tab === 'trending' ? state : undefined,
+      chatState: tab === 'ai' ? state : undefined,
+      cellarView: tab === 'cellar' ? state?.view : undefined,
     };
 
-    handleUrlRouting();
-    window.addEventListener('popstate', handleUrlRouting);
-    return () => window.removeEventListener('popstate', handleUrlRouting);
-  }, []);
+    if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
+      window.history[options?.replace ? 'replaceState' : 'pushState'](nextState, '', nextUrl);
+    } else {
+      window.history.replaceState(nextState, '', nextUrl);
+    }
+    applyRoute();
+  }, [applyRoute]);
+
+  useEffect(() => {
+    applyRoute();
+    window.addEventListener('popstate', applyRoute);
+    return () => window.removeEventListener('popstate', applyRoute);
+  }, [applyRoute]);
 
   useEffect(() => {
     const handleCustomNotification = (e: Event) => {
@@ -244,12 +322,12 @@ export default function App() {
 
   const requireVerifiedAccess = (tab: string) => {
     if (kycAssurance >= 1) {
-      setActiveTab(tab);
+      navigateTo(tab);
       return;
     }
 
     addNotification('info', 'KYC Required', 'Please submit KYC in your Dossier before accessing high-trust features.');
-    setActiveTab('profile');
+    navigateTo('profile');
   };
 
   return (
@@ -309,76 +387,49 @@ export default function App() {
         {selectedGrapeSlug ? (
           <GrapeKnowledgePage 
             slug={selectedGrapeSlug} 
-            onBack={() => {
-              window.history.pushState(null, '', '/explore');
-              setSelectedGrapeSlug(null);
-              setActiveTab('discover');
-            }}
+            onBack={() => navigateTo('discover')}
             onSelectWine={setSelectedWine}
           />
         ) : (
           <>
-            {activeTab === 'home' && <HomeTab onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
-              setActiveTab(tab);
-              if (tab === 'discover' && state) setInitialDiscoverState(state);
-              if (tab === 'ai' && state) setInitialChatState(state);
-            }} />}
+            {activeTab === 'home' && <HomeTab onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
             {activeTab === 'discover' && <DiscoverTab onSelectWine={setSelectedWine} initialState={initialDiscoverState} />}
-            {activeTab === 'scan' && (kycAssurance >= 1 ? <ScanTab onSelectWine={setSelectedWine} /> : <ProfileTab onNavigate={(tab) => setActiveTab(tab)} />)}
-            {activeTab === 'ai' && <SommelierChat onClose={() => setActiveTab('home')} initialMessage={initialChatState} />}
-            {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={(tab, state) => {
-              setActiveTab(tab);
-              if (tab === 'discover' && state) setInitialDiscoverState(state);
-              if (tab === 'ai' && state) setInitialChatState(state);
-            }} />}
-            {activeTab === 'cupido' && (kycAssurance >= 1 ? <CupidoTab /> : <ProfileTab onNavigate={(tab) => setActiveTab(tab)} />)}
-            {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => {
-              setActiveTab(tab);
-              if (tab === 'cellar') setCellarSubView('cellar');
-            }} />}
-            {activeTab === 'trending' && <TrendingTab onBack={() => setActiveTab('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
-            {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => setActiveTab('home')} onNavigate={(tab, state) => {
-              setActiveTab(tab);
-              if (tab === 'discover' && state) setInitialDiscoverState(state);
-              if (tab === 'ai' && state) setInitialChatState(state);
-            }} />}
-            {activeTab === 'pairing-engine' && <PairingEngine onBack={() => setActiveTab('pairings')} onNavigate={(tab, state) => {
-              setActiveTab(tab);
-              if (tab === 'discover' && state) setInitialDiscoverState(state);
-            }} />}
-            {activeTab === 'admin' && <AdminDashboard onBack={() => setActiveTab('home')} />}
+            {activeTab === 'scan' && (kycAssurance >= 1 ? <ScanTab onSelectWine={setSelectedWine} /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
+            {activeTab === 'ai' && <SommelierChat onClose={() => navigateTo('home')} initialMessage={initialChatState} />}
+            {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
+            {activeTab === 'cupido' && (kycAssurance >= 1 ? <CupidoTab /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
+            {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => navigateTo(tab, tab === 'cellar' ? { view: 'cellar' } : undefined)} />}
+            {activeTab === 'trending' && <TrendingTab onBack={() => navigateTo('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
+            {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />}
+            {activeTab === 'pairing-engine' && <PairingEngine onBack={() => navigateTo('pairings')} onNavigate={navigateTo} />}
+            {activeTab === 'admin' && <AdminDashboard onBack={() => navigateTo('home')} />}
             {activeTab === 'collection-add' && (
               <AddWineCollectionScreen 
-                onBack={() => {
-                  setCellarSubView('cellar');
-                  setActiveTab('cellar');
-                }}
-                onNavigate={(route) => setActiveTab(route)}
+                onBack={() => navigateTo('cellar', { view: 'cellar' })}
+                onNavigate={(route) => navigateTo(route)}
                 onSelectWine={(wine) => setSelectedWine(wine)}
                 onNavigateToCellar={(section) => {
                   if (section === 'wishlist') {
-                    setCellarSubView('wishlist');
-                    setActiveTab('cellar');
+                    navigateTo('cellar', { view: 'wishlist' });
                   } else if (section === 'portfolio') {
-                    setActiveTab('profile');
+                    navigateTo('profile');
                   } else {
-                    setCellarSubView('cellar');
-                    setActiveTab('cellar');
+                    navigateTo('cellar', { view: 'cellar' });
                   }
                 }}
               />
             )}
             {activeTab === 'collection-manual' && (
               <ManualEntryScreen 
-                onBack={() => setActiveTab('collection-add')}
-                onNavigate={(route) => setActiveTab(route)}
+                onBack={() => navigateTo('collection-add')}
+                onNavigate={(route) => navigateTo(route)}
                 onSelectWine={(wine) => setSelectedWine(wine)}
               />
             )}
             {activeTab === 'search' && (
               <SearchWineScreen 
-                onBack={() => setActiveTab('collection-add')}
-                onNavigate={(route) => setActiveTab(route)}
+                onBack={() => navigateTo('collection-add')}
+                onNavigate={(route) => navigateTo(route)}
                 onSelectWine={(wine) => setSelectedWine(wine)}
               />
             )}
@@ -391,9 +442,9 @@ export default function App() {
       {activeTab !== 'admin' && activeTab !== 'collection-add' && activeTab !== 'collection-manual' && activeTab !== 'search' && !selectedGrapeSlug && (
         <div className="absolute bottom-6 left-4 right-4 z-40 max-w-sm mx-auto">
           <nav className="w-full h-[72px] bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#C8A24A]/25 flex justify-between items-center px-4 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.9)]">
-            <NavItem icon={<Home size={20} />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-            <NavItem icon={<Compass size={20} />} active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} />
-            <NavItem icon={<Grape size={20} />} active={activeTab === 'cellar'} onClick={() => setActiveTab('cellar')} />
+            <NavItem icon={<Home size={20} />} active={activeTab === 'home'} onClick={() => navigateTo('home')} />
+            <NavItem icon={<Compass size={20} />} active={activeTab === 'discover'} onClick={() => navigateTo('discover')} />
+            <NavItem icon={<Grape size={20} />} active={activeTab === 'cellar'} onClick={() => navigateTo('cellar')} />
             
             {/* Floating Center Scan Button */}
             <div className="relative -top-5">
@@ -407,7 +458,7 @@ export default function App() {
             </div>
 
             <NavItem icon={<Heart size={20} className={activeTab === 'cupido' ? 'text-[#8B1538] fill-[#8B1538]' : ''} />} active={activeTab === 'cupido'} onClick={() => requireVerifiedAccess('cupido')} />
-            <NavItem icon={<User size={20} />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+            <NavItem icon={<User size={20} />} active={activeTab === 'profile'} onClick={() => navigateTo('profile')} />
           </nav>
         </div>
       )}
