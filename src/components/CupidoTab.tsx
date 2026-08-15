@@ -1864,13 +1864,13 @@ type CupidoReceipt = {
   provider: PaymentProvider;
   planName: string;
   amountZAR: number;
-  interval: 'month';
+  interval: 'week';
   payerEmail?: string;
   receiptUrl?: string;
 };
 
 const CUPIDO_GOLD_PLAN = {
-  name: 'Cupido Gold — Monthly AI Access',
+  name: 'Cupido Gold — Weekly AI Access',
   priceZAR: 20,
   quantity: 1,
 };
@@ -1890,7 +1890,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
     notifyUser(
       'info',
       'Cupido Gold Activated ✨',
-      `Your R${paymentReceipt.amountZAR.toFixed(2)}/month ${providerLabels[paymentReceipt.provider]} subscription is active.`
+      `Your R${paymentReceipt.amountZAR.toFixed(2)}/week ${providerLabels[paymentReceipt.provider]} subscription is active.`
     );
     setTimeout(onUpgrade, 1200);
   };
@@ -1921,7 +1921,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
           </div>
           <div className="bg-white/[0.04] border border-white/5 rounded-xl p-3 text-xs text-left space-y-1.5">
             <p><strong className="text-[#D4AF37]">Plan:</strong> {receipt.planName}</p>
-            <p><strong className="text-[#D4AF37]">Recurring fee:</strong> R{receipt.amountZAR.toFixed(2)} / month</p>
+            <p><strong className="text-[#D4AF37]">Recurring fee:</strong> R{receipt.amountZAR.toFixed(2)} / week</p>
             <p><strong className="text-[#D4AF37]">Paid with:</strong> {providerLabels[receipt.provider]}</p>
             <p className="text-gray-500 font-mono text-[10px]">Subscription: {receipt.subscriptionId}</p>
           </div>
@@ -1939,7 +1939,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
         <div className="p-3.5 rounded-full bg-gradient-to-br from-[#D4AF37]/10 to-[#8B1538]/20 border border-[#D4AF37]/30 inline-block"><Crown className="text-[#D4AF37] animate-pulse" size={40} /></div>
         <div className="space-y-1">
           <span className="text-[9px] font-mono tracking-[0.3em] text-[#D4AF37] font-black uppercase">ENOVIQ GOLD MEMBERSHIP</span>
-          <h3 className="text-xl font-serif font-black text-white">Pay R20/month to unlock Cupido AI</h3>
+          <h3 className="text-xl font-serif font-black text-white">Pay R20/week to unlock Cupido AI</h3>
           <p className="text-xs text-gray-400">A recurring Cupido Gold subscription is required before accessing matches, AI dates, VIP meetups and compatibility reports.</p>
         </div>
         <div className="space-y-2.5 text-left text-xs font-serif text-gray-300">
@@ -1949,13 +1949,12 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
         </div>
         <div className="bg-black/30 border border-white/10 rounded-2xl p-3 space-y-3 text-left">
           <div className="flex items-center justify-between">
-            <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring monthly billing</p></div>
+            <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring weekly billing</p></div>
             <p className="text-lg text-[#D4AF37] font-serif font-black">R20</p>
           </div>
           <button type="button" onClick={startWhopCheckout} className="w-full bg-[#D4AF37] hover:bg-[#f0cf69] text-[#0D0A0A] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> Continue to Whop checkout</button>
         </div>
         {error && <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}
-        <p className="text-[9.5px] font-mono text-gray-500">Secure checkout is hosted by Whop. Add your Whop link in VITE_WHOP_CUPIDO_CHECKOUT_URL.</p>
       </motion.div>
     </motion.div>
   );
@@ -1997,7 +1996,7 @@ function buildPaymentDataRequest(ticket: { name: string; priceZAR: number; quant
     allowedPaymentMethods: [cardPaymentMethod],
     merchantInfo: { merchantId: '12345678901234567890', merchantName: 'Cupido Gold' },
     transactionInfo: {
-      countryCode: 'ZA', currencyCode: 'ZAR', totalPriceStatus: 'FINAL', totalPrice, totalPriceLabel: 'Monthly recurring fee',
+      countryCode: 'ZA', currencyCode: 'ZAR', totalPriceStatus: 'FINAL', totalPrice, totalPriceLabel: 'Weekly recurring fee',
       displayItems: [{ label: ticket.name, type: 'LINE_ITEM', price: ticket.priceZAR.toFixed(2) }],
     },
     shippingAddressRequired: false,

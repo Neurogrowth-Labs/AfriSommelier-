@@ -24,5 +24,4 @@ View your app in AI Studio: https://ai.studio/apps/2358154f-f253-4d3c-be89-a1db9
 
 Set these environment variables before running the app with Whop checkout redirects:
 
-- `VITE_WHOP_CUPIDO_CHECKOUT_URL`: Whop checkout link for the Cupido Gold monthly membership.
 - `VITE_WHOP_WINE_CHECKOUT_URL`: Generic Whop checkout link used by every wine detail `Buy Now` button.
