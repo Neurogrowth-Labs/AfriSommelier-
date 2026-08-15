@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { supabase, notifyUser } from '../supabase';
+import { WHOP_CUPIDO_CHECKOUT_URL, openWhopCheckout } from '../services/checkoutLinks';
 
 // Theme Colors
 // Background: #0D0A0A (Rich Jet Black) to #4A001F (Deep Wine Plum) to #8B1538 (Vibrant Crimson Wine)
@@ -1883,7 +1884,6 @@ const providerLabels: Record<PaymentProvider, string> = {
 function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgrade: () => void }) {
   const [receipt, setReceipt] = useState<CupidoReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [processingProvider, setProcessingProvider] = useState<PaymentProvider | null>(null);
 
   const completeUpgrade = (paymentReceipt: CupidoReceipt) => {
     setReceipt(paymentReceipt);
@@ -1895,26 +1895,16 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
     setTimeout(onUpgrade, 1200);
   };
 
-  const startHostedFlow = async (provider: Exclude<PaymentProvider, 'google_pay'>) => {
+  const startWhopCheckout = () => {
     setError(null);
-    setProcessingProvider(provider);
     try {
-      const res = await fetch(`/api/cupido/subscriptions/${provider}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planName: CUPIDO_GOLD_PLAN.name, amountZAR: CUPIDO_GOLD_PLAN.priceZAR }),
+      openWhopCheckout(WHOP_CUPIDO_CHECKOUT_URL, {
+        source: 'enoviq',
+        flow: 'cupido',
+        plan: CUPIDO_GOLD_PLAN.name
       });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || `Unable to start ${providerLabels[provider]} checkout.`);
-
-      // In production this URL is a Stripe Checkout or PayPal approval URL.
-      // The sandbox endpoint returns an already-confirmed receipt so the app is usable without secrets.
-      completeUpgrade(payload.receipt);
     } catch (err: any) {
-      setError(err?.message || 'Payment failed. Please try again.');
-    } finally {
-      setProcessingProvider(null);
+      setError(err?.message || 'Checkout is not configured yet. Please try again later.');
     }
   };
 
@@ -1962,12 +1952,10 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
             <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring monthly billing</p></div>
             <p className="text-lg text-[#D4AF37] font-serif font-black">R20</p>
           </div>
-          <GooglePayButton ticket={CUPIDO_GOLD_PLAN} onSuccess={completeUpgrade} onError={(err) => setError(err.message || 'Google Pay failed.')} />
-          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('paypal')} className="w-full bg-[#ffc439] hover:bg-[#f5b800] disabled:opacity-60 text-[#003087] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'paypal' ? 'Opening PayPal…' : 'PayPal recurring checkout'}</button>
-          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('stripe')} className="w-full bg-[#635bff] hover:bg-[#554ee8] disabled:opacity-60 text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'stripe' ? 'Opening Stripe…' : 'Stripe card subscription'}</button>
+          <button type="button" onClick={startWhopCheckout} className="w-full bg-[#D4AF37] hover:bg-[#f0cf69] text-[#0D0A0A] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> Continue to Whop checkout</button>
         </div>
         {error && <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}
-        <p className="text-[9.5px] font-mono text-gray-500">Sandbox flow creates a backend subscription receipt. Replace server secrets and hosted URLs for production.</p>
+        <p className="text-[9.5px] font-mono text-gray-500">Secure checkout is hosted by Whop. Add your Whop link in VITE_WHOP_CUPIDO_CHECKOUT_URL.</p>
       </motion.div>
     </motion.div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, Heart, Share, Star, Leaf, Activity, Droplet, Edit3, Check, ShoppingCart, Music, Image as ImageIcon, Loader2, Tag } from 'lucide-react';
 import { supabase } from '../supabase';
+import { WHOP_WINE_CHECKOUT_URL, openWhopCheckout } from '../services/checkoutLinks';
 import LogGlassModal from './LogGlassModal';
 
 export default function WineDetail({ wine, onClose }: { wine: any, onClose: () => void }) {
@@ -199,8 +200,15 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
       timestamp: new Date().toISOString()
     });
     
-    // In a real app, this would open a checkout modal or redirect to a partner
-    alert(`Redirecting to partner retailer to purchase ${wine.name}...`);
+    try {
+      openWhopCheckout(WHOP_WINE_CHECKOUT_URL, {
+        source: 'enoviq',
+        flow: 'wine',
+        wine: wine.name || wine.id || 'selected-wine'
+      });
+    } catch (error: any) {
+      alert(error?.message || 'Checkout is not configured yet. Please try again later.');
+    }
   };
 
   const handleApplyCoupon = () => {
