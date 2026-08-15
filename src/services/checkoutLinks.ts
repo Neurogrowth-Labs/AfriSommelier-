@@ -1,5 +1,3 @@
-export const DEFAULT_WHOP_CUPIDO_CHECKOUT_URL = 'https://whop.com/checkout/plan_syOe55z7hBm9A';
-export const WHOP_CUPIDO_CHECKOUT_URL = import.meta.env.VITE_WHOP_CUPIDO_CHECKOUT_URL || DEFAULT_WHOP_CUPIDO_CHECKOUT_URL;
 export const WHOP_WINE_CHECKOUT_URL = import.meta.env.VITE_WHOP_WINE_CHECKOUT_URL || '';
 
 type CheckoutContext = Record<string, string | number | boolean | null | undefined>;

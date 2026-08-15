@@ -1955,7 +1955,6 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
           <button type="button" onClick={startWhopCheckout} className="w-full bg-[#D4AF37] hover:bg-[#f0cf69] text-[#0D0A0A] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> Continue to Whop checkout</button>
         </div>
         {error && <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}
-        <p className="text-[9.5px] font-mono text-gray-500">Secure checkout is hosted by Whop. Uses the Cupido Gold R20/week Whop checkout plan.</p>
       </motion.div>
     </motion.div>
   );
