@@ -18,3 +18,11 @@ View your app in AI Studio: https://ai.studio/apps/2358154f-f253-4d3c-be89-a1db9
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+
+## Whop checkout setup
+
+Set these environment variables before running the app with Whop checkout redirects:
+
+- `VITE_WHOP_CUPIDO_CHECKOUT_URL`: Whop checkout link for the Cupido Gold R20/week membership.
+- `VITE_WHOP_WINE_CHECKOUT_URL`: Generic Whop checkout link used by every wine detail `Buy Now` button.

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { supabase, notifyUser } from '../supabase';
+import { WHOP_CUPIDO_CHECKOUT_URL, openWhopCheckout } from '../services/checkoutLinks';
 
 // Theme Colors
 // Background: #0D0A0A (Rich Jet Black) to #4A001F (Deep Wine Plum) to #8B1538 (Vibrant Crimson Wine)
@@ -1863,13 +1864,13 @@ type CupidoReceipt = {
   provider: PaymentProvider;
   planName: string;
   amountZAR: number;
-  interval: 'month';
+  interval: 'week';
   payerEmail?: string;
   receiptUrl?: string;
 };
 
 const CUPIDO_GOLD_PLAN = {
-  name: 'Cupido Gold — Monthly AI Access',
+  name: 'Cupido Gold — Weekly AI Access',
   priceZAR: 20,
   quantity: 1,
 };
@@ -1883,38 +1884,27 @@ const providerLabels: Record<PaymentProvider, string> = {
 function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgrade: () => void }) {
   const [receipt, setReceipt] = useState<CupidoReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [processingProvider, setProcessingProvider] = useState<PaymentProvider | null>(null);
 
   const completeUpgrade = (paymentReceipt: CupidoReceipt) => {
     setReceipt(paymentReceipt);
     notifyUser(
       'info',
       'Cupido Gold Activated ✨',
-      `Your R${paymentReceipt.amountZAR.toFixed(2)}/month ${providerLabels[paymentReceipt.provider]} subscription is active.`
+      `Your R${paymentReceipt.amountZAR.toFixed(2)}/week ${providerLabels[paymentReceipt.provider]} subscription is active.`
     );
     setTimeout(onUpgrade, 1200);
   };
 
-  const startHostedFlow = async (provider: Exclude<PaymentProvider, 'google_pay'>) => {
+  const startWhopCheckout = () => {
     setError(null);
-    setProcessingProvider(provider);
     try {
-      const res = await fetch(`/api/cupido/subscriptions/${provider}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planName: CUPIDO_GOLD_PLAN.name, amountZAR: CUPIDO_GOLD_PLAN.priceZAR }),
+      openWhopCheckout(WHOP_CUPIDO_CHECKOUT_URL, {
+        source: 'enoviq',
+        flow: 'cupido',
+        plan: CUPIDO_GOLD_PLAN.name
       });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || `Unable to start ${providerLabels[provider]} checkout.`);
-
-      // In production this URL is a Stripe Checkout or PayPal approval URL.
-      // The sandbox endpoint returns an already-confirmed receipt so the app is usable without secrets.
-      completeUpgrade(payload.receipt);
     } catch (err: any) {
-      setError(err?.message || 'Payment failed. Please try again.');
-    } finally {
-      setProcessingProvider(null);
+      setError(err?.message || 'Checkout is not configured yet. Please try again later.');
     }
   };
 
@@ -1931,7 +1921,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
           </div>
           <div className="bg-white/[0.04] border border-white/5 rounded-xl p-3 text-xs text-left space-y-1.5">
             <p><strong className="text-[#D4AF37]">Plan:</strong> {receipt.planName}</p>
-            <p><strong className="text-[#D4AF37]">Recurring fee:</strong> R{receipt.amountZAR.toFixed(2)} / month</p>
+            <p><strong className="text-[#D4AF37]">Recurring fee:</strong> R{receipt.amountZAR.toFixed(2)} / week</p>
             <p><strong className="text-[#D4AF37]">Paid with:</strong> {providerLabels[receipt.provider]}</p>
             <p className="text-gray-500 font-mono text-[10px]">Subscription: {receipt.subscriptionId}</p>
           </div>
@@ -1949,7 +1939,7 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
         <div className="p-3.5 rounded-full bg-gradient-to-br from-[#D4AF37]/10 to-[#8B1538]/20 border border-[#D4AF37]/30 inline-block"><Crown className="text-[#D4AF37] animate-pulse" size={40} /></div>
         <div className="space-y-1">
           <span className="text-[9px] font-mono tracking-[0.3em] text-[#D4AF37] font-black uppercase">ENOVIQ GOLD MEMBERSHIP</span>
-          <h3 className="text-xl font-serif font-black text-white">Pay R20/month to unlock Cupido AI</h3>
+          <h3 className="text-xl font-serif font-black text-white">Pay R20/week to unlock Cupido AI</h3>
           <p className="text-xs text-gray-400">A recurring Cupido Gold subscription is required before accessing matches, AI dates, VIP meetups and compatibility reports.</p>
         </div>
         <div className="space-y-2.5 text-left text-xs font-serif text-gray-300">
@@ -1959,15 +1949,13 @@ function GoldPremiumModal({ onClose, onUpgrade }: { onClose: () => void, onUpgra
         </div>
         <div className="bg-black/30 border border-white/10 rounded-2xl p-3 space-y-3 text-left">
           <div className="flex items-center justify-between">
-            <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring monthly billing</p></div>
+            <div><p className="text-xs font-serif font-black text-white">Cupido Gold</p><p className="text-[10px] text-gray-500 font-mono">Recurring weekly billing</p></div>
             <p className="text-lg text-[#D4AF37] font-serif font-black">R20</p>
           </div>
-          <GooglePayButton ticket={CUPIDO_GOLD_PLAN} onSuccess={completeUpgrade} onError={(err) => setError(err.message || 'Google Pay failed.')} />
-          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('paypal')} className="w-full bg-[#ffc439] hover:bg-[#f5b800] disabled:opacity-60 text-[#003087] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'paypal' ? 'Opening PayPal…' : 'PayPal recurring checkout'}</button>
-          <button type="button" disabled={!!processingProvider} onClick={() => startHostedFlow('stripe')} className="w-full bg-[#635bff] hover:bg-[#554ee8] disabled:opacity-60 text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> {processingProvider === 'stripe' ? 'Opening Stripe…' : 'Stripe card subscription'}</button>
+          <button type="button" onClick={startWhopCheckout} className="w-full bg-[#D4AF37] hover:bg-[#f0cf69] text-[#0D0A0A] font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"><CreditCard size={14} /> Continue to Whop checkout</button>
         </div>
         {error && <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}
-        <p className="text-[9.5px] font-mono text-gray-500">Sandbox flow creates a backend subscription receipt. Replace server secrets and hosted URLs for production.</p>
+        <p className="text-[9.5px] font-mono text-gray-500">Secure checkout is hosted by Whop. Uses the Cupido Gold R20/week Whop checkout plan.</p>
       </motion.div>
     </motion.div>
   );
@@ -2009,7 +1997,7 @@ function buildPaymentDataRequest(ticket: { name: string; priceZAR: number; quant
     allowedPaymentMethods: [cardPaymentMethod],
     merchantInfo: { merchantId: '12345678901234567890', merchantName: 'Cupido Gold' },
     transactionInfo: {
-      countryCode: 'ZA', currencyCode: 'ZAR', totalPriceStatus: 'FINAL', totalPrice, totalPriceLabel: 'Monthly recurring fee',
+      countryCode: 'ZA', currencyCode: 'ZAR', totalPriceStatus: 'FINAL', totalPrice, totalPriceLabel: 'Weekly recurring fee',
       displayItems: [{ label: ticket.name, type: 'LINE_ITEM', price: ticket.priceZAR.toFixed(2) }],
     },
     shippingAddressRequired: false,
