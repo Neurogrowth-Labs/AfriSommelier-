@@ -320,8 +320,10 @@ export default function App() {
     return <OnboardingScreen onComplete={() => setIsOnboarding(false)} />;
   }
 
+  const requiresKyc = (tab: string) => tab === 'scan';
+
   const requireVerifiedAccess = (tab: string) => {
-    if (kycAssurance >= 1) {
+    if (!requiresKyc(tab) || kycAssurance >= 1) {
       navigateTo(tab);
       return;
     }
@@ -397,7 +399,7 @@ export default function App() {
             {activeTab === 'scan' && (kycAssurance >= 1 ? <ScanTab onSelectWine={setSelectedWine} /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
             {activeTab === 'ai' && <SommelierChat onClose={() => navigateTo('home')} initialMessage={initialChatState} />}
             {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
-            {activeTab === 'cupido' && (kycAssurance >= 1 ? <CupidoTab /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
+            {activeTab === 'cupido' && <CupidoTab />}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => navigateTo(tab, tab === 'cellar' ? { view: 'cellar' } : undefined)} />}
             {activeTab === 'trending' && <TrendingTab onBack={() => navigateTo('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
             {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />}
