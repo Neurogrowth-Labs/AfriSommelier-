@@ -6,6 +6,7 @@ import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { supabase } from './supabase';
 import OnboardingScreen from './components/OnboardingScreen';
+import { Bell, Calendar, Grape, Home, Search, Sparkles, Users } from 'lucide-react';
 
 
 const HomeTab = lazy(() => import('./components/HomeTab'));

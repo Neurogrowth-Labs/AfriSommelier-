@@ -82,10 +82,14 @@ create table if not exists public.wishlist (
   name text not null,
   vintage text,
   region text,
+  grape text,
   image text,
   price text,
   created_at timestamptz not null default now()
 );
+
+-- Keep existing production databases aligned when this idempotent schema is rerun.
+alter table public.wishlist add column if not exists grape text;
 
 create table if not exists public.consumption (
   id uuid primary key default gen_random_uuid(),
@@ -355,3 +359,61 @@ set search_path = public
 as $$
   select coalesce(public.current_user_role() in ('lead_sommelier', 'admin', 'super_admin'), false)
 $$;
+
+-- -----------------------------------------------------------------------------
+-- RLS policies for app data access
+-- -----------------------------------------------------------------------------
+alter table public.profiles enable row level security;
+alter table public.wines enable row level security;
+alter table public.cellar enable row level security;
+alter table public.wishlist enable row level security;
+alter table public.consumption enable row level security;
+alter table public.events enable row level security;
+alter table public.reviews enable row level security;
+alter table public.news enable row level security;
+alter table public.scans enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_owner_read') then
+    create policy profiles_owner_read on public.profiles for select using (auth.uid() = id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_owner_update') then
+    create policy profiles_owner_update on public.profiles for update using (auth.uid() = id or public.is_admin()) with check (auth.uid() = id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'wines' and policyname = 'wines_public_read') then
+    create policy wines_public_read on public.wines for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'news' and policyname = 'news_public_read') then
+    create policy news_public_read on public.news for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cellar' and policyname = 'cellar_owner_manage') then
+    create policy cellar_owner_manage on public.cellar for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'wishlist' and policyname = 'wishlist_owner_manage') then
+    create policy wishlist_owner_manage on public.wishlist for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'consumption' and policyname = 'consumption_owner_manage') then
+    create policy consumption_owner_manage on public.consumption for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'events' and policyname = 'events_owner_manage') then
+    create policy events_owner_manage on public.events for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'reviews' and policyname = 'reviews_owner_manage') then
+    create policy reviews_owner_manage on public.reviews for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'scans' and policyname = 'scans_owner_manage') then
+    create policy scans_owner_manage on public.scans for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+end $$;
+
+select 'AfriSommelier Supabase backend schema installed without mock/demo data.' as status;
