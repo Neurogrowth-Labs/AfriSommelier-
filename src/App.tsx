@@ -4,7 +4,6 @@
  */
 import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Home, Search, ScanLine, Users, User, Bell, Calendar, Sparkles, Grape } from 'lucide-react';
 import { supabase } from './supabase';
 import OnboardingScreen from './components/OnboardingScreen';
 
@@ -450,20 +449,7 @@ export default function App() {
             <NavItem label="For You" icon={<Home size={19} />} active={activeTab === 'home'} onClick={() => navigateTo('home')} />
             <NavItem label="Search" icon={<Search size={19} />} active={activeTab === 'discover'} onClick={() => navigateTo('discover')} />
             <NavItem label="Friends" icon={<Users size={19} />} active={activeTab === 'social'} onClick={() => navigateTo('social')} />
-            <NavItem label="Profile" icon={<User size={19} />} active={activeTab === 'profile' || activeTab === 'cellar'} onClick={() => navigateTo('profile')} />
-            
-            {/* Floating Center Scan Button */}
-            <div className="relative -top-6">
-              <button 
-                onClick={() => requireVerifiedAccess('scan')}
-                aria-label="Scan wine"
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
-              >
-                <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
-                <ScanLine size={22} />
-                <span className="text-[8px] font-black uppercase tracking-wider mt-0.5">Scan</span>
-              </button>
-            </div>
+
           </nav>
         </div>
       )}
