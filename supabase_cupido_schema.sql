@@ -82,10 +82,14 @@ create table if not exists public.wishlist (
   name text not null,
   vintage text,
   region text,
+  grape text,
   image text,
   price text,
   created_at timestamptz not null default now()
 );
+
+-- Keep existing production databases aligned when this idempotent schema is rerun.
+alter table public.wishlist add column if not exists grape text;
 
 create table if not exists public.consumption (
   id uuid primary key default gen_random_uuid(),

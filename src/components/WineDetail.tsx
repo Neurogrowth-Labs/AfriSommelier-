@@ -146,6 +146,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           name: wine.name,
           vintage: wine.vintage,
           region: wine.region,
+          grape: wine.grape,
           image: wine.image,
           price: wine.price,
           created_at: new Date().toISOString()

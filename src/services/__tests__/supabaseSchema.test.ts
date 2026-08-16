@@ -22,3 +22,9 @@ test('schema includes KYC workflow storage and assurance helpers', () => {
   assert.match(schema, /create policy kyc_admin_review on public\.kyc_verifications/);
   assert.match(schema, /create policy kyc_owner_submit on public\.kyc_verifications/);
 });
+
+
+test('schema defines grape on wishlist for saved wine metadata', () => {
+  assert.match(schema, /create table if not exists public\.wishlist \([\s\S]*?grape text,/);
+  assert.match(schema, /alter table public\.wishlist add column if not exists grape text;/);
+});
