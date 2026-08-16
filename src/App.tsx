@@ -4,7 +4,6 @@
  */
 import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Home, Search, Users, User, Bell, Calendar, Sparkles, Grape, Wine } from 'lucide-react';
 import { supabase } from './supabase';
 import OnboardingScreen from './components/OnboardingScreen';
 
@@ -403,7 +402,6 @@ export default function App() {
             {activeTab === 'ai' && <SommelierChat onClose={() => navigateTo('home')} initialMessage={initialChatState} />}
             {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
             {activeTab === 'cupido' && <CupidoTab />}
-            {activeTab === 'social' && <SocialTab />}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => navigateTo(tab, tab === 'cellar' ? { view: 'cellar' } : undefined)} />}
             {activeTab === 'trending' && <TrendingTab onBack={() => navigateTo('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
             {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />}
@@ -451,8 +449,7 @@ export default function App() {
             <NavItem label="For You" icon={<Home size={19} />} active={activeTab === 'home'} onClick={() => navigateTo('home')} />
             <NavItem label="Search" icon={<Search size={19} />} active={activeTab === 'discover'} onClick={() => navigateTo('discover')} />
             <NavItem label="Friends" icon={<Users size={19} />} active={activeTab === 'social'} onClick={() => navigateTo('social')} />
-            <NavItem label="Cupido" icon={<span className="relative inline-flex"><Wine size={19} /><Sparkles size={10} className="absolute -right-2 -top-1 text-[#C8A24A]" /></span>} active={activeTab === 'cupido'} onClick={() => requireVerifiedAccess('cupido')} />
-            <NavItem label="Profile" icon={<User size={19} />} active={activeTab === 'profile' || activeTab === 'cellar'} onClick={() => navigateTo('profile')} />
+
           </nav>
         </div>
       )}
