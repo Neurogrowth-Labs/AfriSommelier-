@@ -1,18 +1,30 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Settings, Award, Flame, LogOut, Wine, Activity, MapPin, Grape, BookOpen, Hexagon, Shield, Star } from 'lucide-react';
+import { ChevronLeft, Settings, Award, Flame, LogOut, Wine, Activity, MapPin, Grape, BookOpen, Hexagon, Shield, Star, Trophy, Target, Sparkles } from 'lucide-react';
 import { supabase } from '../supabase';
 import { getCurrentKycVerification, submitKycVerification, type KycVerification } from '../services/kyc';
 
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: 'star' | 'flame' | 'trophy' | 'target' | 'grape' | 'sparkles';
+  color: string;
+  earned: boolean;
+  progress?: number;
+  maxProgress?: number;
+}
+
 export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const [stats, setStats] = useState({ 
-    glasses: 0, 
-    streak: 3, 
+  const [stats, setStats] = useState({
+    glasses: 0,
+    streak: 0,
     uniqueWines: 0,
     topVarietal: 'Pinotage',
     topRegion: 'Stellenbosch',
     memberTier: 'Enoviq Initiate'
   });
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Refined Palate DNA for a "Professional" feel
@@ -71,7 +83,7 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
         
         const { data: snapshot, error } = await supabase.from('consumption').select('*').eq('user_id', user.id);
         if (error) throw error;
-        
+
         if (isMounted) {
           const unique = new Set();
           let regionCounts: Record<string, number> = {};
@@ -87,20 +99,128 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
           const topRegion = Object.keys(regionCounts).sort((a,b) => regionCounts[b] - regionCounts[a])[0] || 'Stellenbosch';
           const topVarietal = Object.keys(varietalCounts).sort((a,b) => varietalCounts[b] - varietalCounts[a])[0] || 'Pinotage';
 
-          // Determine tier
+          // Calculate real streak from consumption dates
+          const calculateStreak = (logs: any[]): number => {
+            if (!logs || logs.length === 0) return 0;
+
+            // Get unique dates (normalized to day) sorted descending
+            const dates = logs
+              .map((l: any) => {
+                const d = new Date(l.logged_at || l.created_at);
+                return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+              })
+              .filter((d: number) => !isNaN(d));
+
+            const uniqueDates = [...new Set(dates)].sort((a, b) => b - a);
+            if (uniqueDates.length === 0) return 0;
+
+            const today = new Date();
+            const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+            const oneDayMs = 24 * 60 * 60 * 1000;
+
+            // Check if most recent activity is today or yesterday
+            const mostRecent = uniqueDates[0];
+            if (mostRecent !== todayNorm && mostRecent !== todayNorm - oneDayMs) {
+              return 0; // Streak broken
+            }
+
+            let streak = 1;
+            for (let i = 1; i < uniqueDates.length; i++) {
+              const diff = uniqueDates[i - 1] - uniqueDates[i];
+              if (diff === oneDayMs) {
+                streak++;
+              } else {
+                break;
+              }
+            }
+            return streak;
+          };
+
+          const realStreak = calculateStreak(snapshot || []);
+
+          // Determine tier based on activity
           let tier = 'Enoviq Initiate';
-          if (snapshot && snapshot.length >= 10) tier = 'Estate Explorer';
-          if (snapshot && snapshot.length >= 30) tier = 'Terroir Master';
-          if (snapshot && snapshot.length >= 50) tier = 'Grand Sommelier';
+          const totalLogs = snapshot?.length || 0;
+          const uniqueCount = unique.size;
+
+          if (totalLogs >= 50 || uniqueCount >= 30) tier = 'Grand Sommelier';
+          else if (totalLogs >= 30 || uniqueCount >= 20) tier = 'Terroir Master';
+          else if (totalLogs >= 10 || uniqueCount >= 5) tier = 'Estate Explorer';
 
           setStats({
-            glasses: snapshot ? snapshot.length : 0,
-            streak: Math.max(3, Math.floor((snapshot ? snapshot.length : 0) / 3)), 
-            uniqueWines: unique.size,
+            glasses: totalLogs,
+            streak: realStreak,
+            uniqueWines: uniqueCount,
             topRegion,
             topVarietal,
             memberTier: tier
           });
+
+          // Calculate achievements based on real data
+          const calculatedAchievements: Achievement[] = [
+            {
+              id: 'first_taste',
+              title: 'First Taste',
+              description: 'Log your first wine',
+              icon: 'star',
+              color: 'gold',
+              earned: totalLogs >= 1,
+              progress: Math.min(totalLogs, 1),
+              maxProgress: 1
+            },
+            {
+              id: 'streak_master',
+              title: 'Streak Master',
+              description: '7-day tasting streak',
+              icon: 'flame',
+              color: 'red',
+              earned: realStreak >= 7,
+              progress: Math.min(realStreak, 7),
+              maxProgress: 7
+            },
+            {
+              id: 'explorer',
+              title: 'Wine Explorer',
+              description: 'Try 10 unique wines',
+              icon: 'target',
+              color: 'blue',
+              earned: uniqueCount >= 10,
+              progress: Math.min(uniqueCount, 10),
+              maxProgress: 10
+            },
+            {
+              id: 'connoisseur',
+              title: 'Connoisseur',
+              description: 'Log 25 tastings',
+              icon: 'trophy',
+              color: 'purple',
+              earned: totalLogs >= 25,
+              progress: Math.min(totalLogs, 25),
+              maxProgress: 25
+            },
+            {
+              id: 'varietal_focus',
+              title: `${topVarietal} Enthusiast`,
+              description: `5+ ${topVarietal} wines logged`,
+              icon: 'grape',
+              color: 'purple',
+              earned: (varietalCounts[topVarietal] || 0) >= 5,
+              progress: Math.min(varietalCounts[topVarietal] || 0, 5),
+              maxProgress: 5
+            },
+            {
+              id: 'regional_expert',
+              title: `${topRegion} Expert`,
+              description: `Explore 5+ wines from ${topRegion}`,
+              icon: 'sparkles',
+              color: 'amber',
+              earned: (regionCounts[topRegion] || 0) >= 5,
+              progress: Math.min(regionCounts[topRegion] || 0, 5),
+              maxProgress: 5
+            }
+          ];
+
+          setAchievements(calculatedAchievements);
         }
         
         // Setup realtime subscription
@@ -480,28 +600,58 @@ export default function ProfileTab({ onNavigate }: { onNavigate: (tab: string) =
             </div>
           </div>
 
-          {/* Certifications & Badges */}
+          {/* Achievements & Badges */}
           <div>
-            <h3 className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-4 ml-2">Certifications & Honors</h3>
+            <h3 className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-4 ml-2">
+              Achievements ({achievements.filter(a => a.earned).length}/{achievements.length})
+            </h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4 hover:border-gold-500/30 transition-colors">
-                <div className="w-12 h-12 rounded-full bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
-                  <Star size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-white font-serif">Cap Classique Society</h4>
-                  <p className="text-xs text-gray-400 mt-1">Founding Member</p>
-                </div>
-              </div>
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4 hover:border-red-500/30 transition-colors">
-                <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-                  <Flame size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-white font-serif">Pinotage Virtuoso</h4>
-                  <p className="text-xs text-gray-400 mt-1">Level II Explorer</p>
-                </div>
-              </div>
+              {achievements.map((achievement) => {
+                const IconComponent = achievement.icon === 'star' ? Star :
+                                     achievement.icon === 'flame' ? Flame :
+                                     achievement.icon === 'trophy' ? Trophy :
+                                     achievement.icon === 'target' ? Target :
+                                     achievement.icon === 'grape' ? Grape :
+                                     Sparkles;
+
+                const colorClasses = {
+                  gold: { bg: 'bg-gold-500/10', border: 'border-gold-500/30', text: 'text-gold-500', shadow: 'shadow-[0_0_15px_rgba(212,175,55,0.1)]' },
+                  red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-500', shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.1)]' },
+                  blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-500', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.1)]' },
+                  purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-500', shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.1)]' },
+                  amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-500', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.1)]' },
+                }[achievement.color] || { bg: 'bg-gray-500/10', border: 'border-gray-500/30', text: 'text-gray-500', shadow: '' };
+
+                return (
+                  <div
+                    key={achievement.id}
+                    className={`bg-white/5 border p-4 rounded-2xl flex items-center gap-4 transition-colors ${
+                      achievement.earned
+                        ? `border-white/10 hover:${colorClasses.border}`
+                        : 'border-white/5 opacity-50'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full ${colorClasses.bg} ${colorClasses.border} border flex items-center justify-center ${colorClasses.text} ${achievement.earned ? colorClasses.shadow : ''}`}>
+                      <IconComponent size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-white font-serif truncate">{achievement.title}</h4>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{achievement.description}</p>
+                      {!achievement.earned && achievement.progress !== undefined && achievement.maxProgress && (
+                        <div className="mt-2">
+                          <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${colorClasses.bg.replace('/10', '/50')} transition-all`}
+                              style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-gray-500 mt-1">{achievement.progress}/{achievement.maxProgress}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
