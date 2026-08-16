@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronLeft, Heart, Share, Star, Leaf, Activity, Droplet, Edit3, Check, ShoppingCart, Music, Image as ImageIcon, Loader2, Tag } from 'lucide-react';
+import { ChevronLeft, Heart, Share, Star, Leaf, Activity, Droplet, Edit3, Check, ShoppingCart, Music, Image as ImageIcon, Loader2, Tag, Plus, PenLine, NotebookTabs } from 'lucide-react';
 import { supabase } from '../supabase';
 import { WHOP_WINE_CHECKOUT_URL, openWhopCheckout } from '../services/checkoutLinks';
 import LogGlassModal from './LogGlassModal';
@@ -17,6 +18,8 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [isInCellar, setIsInCellar] = useState(Boolean(wine.inCellar));
+  const [isInMyWines, setIsInMyWines] = useState(Boolean(wine.inMyWines || wine.id));
 
   const [couponCode, setCouponCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -189,6 +192,52 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
     }
   };
 
+  const addToCellar = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Please sign in to collect.");
+        return;
+      }
+
+      const { error } = await supabase.from('cellar').insert({
+        user_id: user.id,
+        name: wine.name,
+        vintage: wine.vintage || 'NV',
+        region: wine.region || 'South Africa',
+        grape: wine.grape || '',
+        status: 'Hold (Peak Window ✨)',
+        status_color: 'text-gold-500',
+        image: wine.image || "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=800&auto=format&fit=crop",
+        rating: Number(wine.rating) || 92,
+        price: wine.price || 'R 380',
+        notes: wine.notes || 'Curated into collection.',
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      setIsInCellar(true);
+      setIsInMyWines(true);
+      alert("✅ Added to Cellar!");
+    } catch (e) {
+      console.error(e);
+      alert("Unable to add this wine to your live cellar. Please check your connection and try again.");
+    }
+  };
+
+  const toggleCellar = () => {
+    if (isInCellar) {
+      setIsInCellar(false);
+      alert(`${wine.name} removed from your cellar view.`);
+      return;
+    }
+
+    addToCellar();
+  };
+
+  const toggleMyWines = () => {
+    setIsInMyWines((current) => !current);
+  };
+
   const handleBuy = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -341,53 +390,27 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Quick Collection Actions Integration */}
-        <div className="flex gap-2.5 mb-8">
-          <button
-            onClick={async () => {
-              try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                  alert("Please sign in to collect.");
-                  return;
-                }
-                const { error } = await supabase.from('cellar').insert({
-                  user_id: user.id,
-                  name: wine.name,
-                  vintage: wine.vintage || 'NV',
-                  region: wine.region || 'South Africa',
-                  grape: wine.grape || '',
-                  status: 'Hold (Peak Window ✨)',
-                  status_color: 'text-gold-500',
-                  image: wine.image || "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=800&auto=format&fit=crop",
-                  rating: Number(wine.rating) || 92,
-                  price: wine.price || 'R 380',
-                  notes: wine.notes || 'Curated into collection.',
-                  created_at: new Date().toISOString()
-                });
-                if (error) throw error;
-                alert("✅ Added to Cellar!");
-              } catch (e) {
-                console.error(e);
-                alert("Unable to add this wine to your live cellar. Please check your connection and try again.");
-              }
-            }}
-            className="flex-1 py-3.5 bg-gold-500 text-wine-950 rounded-xl font-serif font-bold text-center hover:scale-[0.98] transition-transform text-sm shadow-[0_4px_20px_rgba(198,169,107,0.25)]"
-          >
-            Add to My Cellar
-          </button>
-          
-          <button
-            onClick={() => alert(`Comparison Workspace initiated. Added ${wine.name} to slot A. Select any similar SA red to analyze body, acidity and yield graphs side by side.`)}
-            className="px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-glass-border text-ivory text-xs rounded-xl font-medium tracking-wide"
-          >
-            Compare Wine
-          </button>
+        {/* Primary Actions: direct, visible shortcuts from the proposed Wine Details flow */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-gold-400">Primary Actions</h2>
+            <span className="text-[10px] text-gray-500">Save • Purchase • Personalize</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <ActionButton icon={<Heart size={16} className={isWishlisted ? 'fill-pink-500 text-pink-500' : ''} />} label={isWishlisted ? 'Wishlisted' : 'Wishlist'} onClick={toggleWishlist} />
+            <ActionButton icon={<Share size={16} />} label="Share" onClick={handleShare} />
+            <ActionButton primary icon={<ShoppingCart size={16} />} label="Add to Cart" onClick={handleBuy} />
+            <ActionButton icon={<Star size={16} />} label="Add Rating" onClick={() => document.getElementById('wine-reviews')?.scrollIntoView({ behavior: 'smooth' })} />
+            <ActionButton icon={<Tag size={16} />} label="Add Price" onClick={() => setShowCouponInput(true)} />
+            <ActionButton icon={<Plus size={16} />} label={isInCellar ? 'Remove Cellar' : 'Add Cellar'} onClick={toggleCellar} />
+            <ActionButton icon={<NotebookTabs size={16} />} label={isInMyWines ? 'Remove My Wines' : 'Add My Wines'} onClick={toggleMyWines} />
+            <ActionButton icon={<PenLine size={16} />} label="Personal Note" onClick={() => setIsEditingNotes(true)} />
+          </div>
         </div>
 
-        {/* AI Summary / Tasting Notes */}
+        {/* Summary */}
         <div className="glass-panel p-6 mb-8 bg-gradient-to-br from-wine-950/70 to-wine-900/45">
-          <h3 className="text-[10px] font-mono uppercase tracking-widest text-gold-400 mb-2">Tasting Notes & AI Insights</h3>
+          <h3 className="text-[10px] font-mono uppercase tracking-widest text-gold-400 mb-2">Summary: Highlights & Facts</h3>
           <p className="text-lg font-serif leading-relaxed italic">
             "{wine.notes || "Bold, smoky, with hints of blackberry and cedar. It perfectly matches your preference for full-bodied reds with structured tannins."}"
           </p>
@@ -431,11 +454,11 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Wellness & Health */}
+        {/* Taste & Pairing */}
         <div className="mb-10">
           <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
             <Activity size={20} className="text-gold-500" />
-            Wellness & Health
+            Taste & Pairing
           </h3>
           <div className="grid grid-cols-3 gap-3">
             <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center">
@@ -465,11 +488,11 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </button>
         </div>
 
-        {/* Personal Notes */}
+        {/* My Log */}
         {wine.id && (
           <div className="mb-10">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">My Tasting Notes</h3>
+              <h3 className="text-xl font-semibold">My Log: Personal Note</h3>
               {!isEditingNotes ? (
                 <button 
                   onClick={() => setIsEditingNotes(true)}
@@ -510,9 +533,9 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         )}
 
-        {/* Community Reviews */}
-        <div className="mb-10">
-          <h3 className="text-xl font-semibold mb-6">Community Reviews</h3>
+        {/* Reviews */}
+        <div id="wine-reviews" className="mb-10 scroll-mt-6">
+          <h3 className="text-xl font-semibold mb-6">Reviews</h3>
           
           <div className="bg-glass border border-glass-border p-4 rounded-xl mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -563,7 +586,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Taste Graph */}
+        {/* Taste Profile */}
         <div className="mb-10">
           <h3 className="text-xl font-semibold mb-6">Taste Profile</h3>
           <div className="space-y-4">
@@ -575,9 +598,9 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Pairings */}
+        {/* Food Pairing */}
         <div className="mb-10">
-          <h3 className="text-xl font-semibold mb-6">Perfect Pairings</h3>
+          <h3 className="text-xl font-semibold mb-6">Food Pairing & Serving Tips</h3>
           <div className="flex overflow-x-auto hide-scrollbar gap-4 -mx-6 px-6">
             <PairingCard food="Braai Ribeye" image="https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=400&auto=format&fit=crop" />
             <PairingCard food="Aged Cheddar" image="https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?q=80&w=400&auto=format&fit=crop" />
@@ -585,13 +608,13 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Market Value & Scarcity Analytics */}
+        {/* Wine Knowledge & Ranking */}
         <div className="mb-10 glass-panel p-6 rounded-2xl bg-wine-950/40 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 bg-gold-500/10 text-gold-500 text-[10px] font-mono rounded-bl-xl border-l border-b border-gold-500/20">
             INVESTMENT: AAA
           </div>
           <h3 className="text-lg font-serif font-bold text-wine-50 mb-1 flex items-center gap-2">
-            📊 Market Valuation & Trend
+            🏅 Wine Ranking & Vintage Comparison
           </h3>
           <p className="text-xs text-gray-400 mb-6">Real-time appreciation index & historical cellar performance</p>
 
@@ -639,7 +662,18 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
           </div>
         </div>
 
-        {/* Buy Section */}
+        {/* Winery & Related Wines */}
+        <div className="mb-10">
+          <h3 className="text-xl font-semibold mb-4">Winery & Related Wines</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <InfoCard title="Meet the Winery" body={wine.winery || 'Learn the estate story, cellar style and maker philosophy.'} />
+            <InfoCard title="Wines from This Winery" body="Browse bottles from the same producer." />
+            <InfoCard title="Vintage Comparison" body="Compare this year against nearby vintages." />
+            <InfoCard title="You Might Also Like" body="Similar bottles based on taste and region." />
+          </div>
+        </div>
+
+        {/* Cart */}
         <div className="mb-12 mt-4 glass-panel p-6 rounded-2xl flex flex-col gap-4">
           <div className="flex gap-4 items-center">
             <div className="flex-1">
@@ -660,7 +694,7 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
               className="bg-gold-500 text-wine-900 font-medium py-3 px-6 rounded-xl hover:scale-[0.98] transition-transform flex items-center gap-2 flex-shrink-0"
             >
               <ShoppingCart size={18} />
-              Buy Now
+              Add to Cart
             </button>
           </div>
 
@@ -710,6 +744,35 @@ export default function WineDetail({ wine, onClose }: { wine: any, onClose: () =
       </AnimatePresence>
      </div>
     </motion.div>
+  );
+}
+
+
+function ActionButton({ icon, label, onClick, primary = false }: { icon: ReactNode, label: string, onClick: () => void, primary?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`min-h-14 rounded-2xl border px-3 py-3 flex items-center gap-2 text-left text-xs font-semibold transition-all active:scale-[0.98] ${
+        primary
+          ? 'bg-gold-500 text-wine-950 border-gold-400 shadow-[0_4px_20px_rgba(198,169,107,0.22)]'
+          : 'bg-white/5 hover:bg-white/10 border-glass-border text-ivory'
+      }`}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function InfoCard({ title, body }: { title: string, body: string }) {
+  return (
+    <button
+      onClick={() => alert(`${title}: ${body}`)}
+      className="glass-panel p-4 rounded-2xl text-left hover:bg-white/10 transition-colors min-h-28"
+    >
+      <h4 className="text-sm font-serif font-bold text-ivory mb-2">{title}</h4>
+      <p className="text-[11px] text-gray-400 leading-relaxed">{body}</p>
+    </button>
   );
 }
 
