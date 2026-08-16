@@ -1,4 +1,5 @@
 export const WHOP_WINE_CHECKOUT_URL = import.meta.env.VITE_WHOP_WINE_CHECKOUT_URL || '';
+export const WHOP_CUPIDO_CHECKOUT_URL = import.meta.env.VITE_WHOP_CUPIDO_CHECKOUT_URL || '';
 
 type CheckoutContext = Record<string, string | number | boolean | null | undefined>;
 

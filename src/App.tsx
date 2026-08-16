@@ -4,7 +4,7 @@
  */
 import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Home, Compass, ScanLine, MessageSquare, Grape, Heart, User, Bell, Calendar, Sparkles, AlertCircle } from 'lucide-react';
+import { Home, Search, ScanLine, Users, User, Bell, Calendar, Sparkles, Grape } from 'lucide-react';
 import { supabase } from './supabase';
 import OnboardingScreen from './components/OnboardingScreen';
 
@@ -13,6 +13,7 @@ const HomeTab = lazy(() => import('./components/HomeTab'));
 const DiscoverTab = lazy(() => import('./components/DiscoverTab'));
 const ScanTab = lazy(() => import('./components/ScanTab'));
 const CellarTab = lazy(() => import('./components/CellarTab'));
+const SocialTab = lazy(() => import('./components/SocialTab'));
 const SommelierChat = lazy(() => import('./components/SommelierChat'));
 const CupidoTab = lazy(() => import('./components/CupidoTab'));
 const WineDetail = lazy(() => import('./components/WineDetail'));
@@ -41,6 +42,7 @@ const TAB_ROUTES: Record<string, string> = {
   ai: '/sommelier',
   cellar: '/cellar',
   cupido: '/cupido',
+  social: '/friends',
   profile: '/profile',
   trending: '/trending',
   pairings: '/pairings',
@@ -64,6 +66,7 @@ const pathToTab = (path: string) => {
   if (path === '/scan') return 'scan';
   if (path === '/cellar' || path === '/cellar/wishlist') return 'cellar';
   if (path === '/cupido') return 'cupido';
+  if (path === '/friends') return 'social';
   if (path === '/profile') return 'profile';
   if (path === '/pairings') return 'pairings';
   if (path === '/pairings/engine') return 'pairing-engine';
@@ -320,8 +323,10 @@ export default function App() {
     return <OnboardingScreen onComplete={() => setIsOnboarding(false)} />;
   }
 
+  const requiresKyc = (tab: string) => tab === 'scan';
+
   const requireVerifiedAccess = (tab: string) => {
-    if (kycAssurance >= 1) {
+    if (!requiresKyc(tab) || kycAssurance >= 1) {
       navigateTo(tab);
       return;
     }
@@ -397,7 +402,8 @@ export default function App() {
             {activeTab === 'scan' && (kycAssurance >= 1 ? <ScanTab onSelectWine={setSelectedWine} /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
             {activeTab === 'ai' && <SommelierChat onClose={() => navigateTo('home')} initialMessage={initialChatState} />}
             {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
-            {activeTab === 'cupido' && (kycAssurance >= 1 ? <CupidoTab /> : <ProfileTab onNavigate={(tab) => navigateTo(tab)} />)}
+            {activeTab === 'cupido' && <CupidoTab />}
+            {activeTab === 'social' && <SocialTab />}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => navigateTo(tab, tab === 'cellar' ? { view: 'cellar' } : undefined)} />}
             {activeTab === 'trending' && <TrendingTab onBack={() => navigateTo('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
             {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />}
@@ -442,23 +448,23 @@ export default function App() {
       {activeTab !== 'admin' && activeTab !== 'collection-add' && activeTab !== 'collection-manual' && activeTab !== 'search' && !selectedGrapeSlug && (
         <div className="absolute bottom-6 left-4 right-4 z-40 max-w-sm mx-auto">
           <nav className="w-full h-[72px] bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#C8A24A]/25 flex justify-between items-center px-4 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.9)]">
-            <NavItem icon={<Home size={20} />} active={activeTab === 'home'} onClick={() => navigateTo('home')} />
-            <NavItem icon={<Compass size={20} />} active={activeTab === 'discover'} onClick={() => navigateTo('discover')} />
-            <NavItem icon={<Grape size={20} />} active={activeTab === 'cellar'} onClick={() => navigateTo('cellar')} />
+            <NavItem label="For You" icon={<Home size={19} />} active={activeTab === 'home'} onClick={() => navigateTo('home')} />
+            <NavItem label="Search" icon={<Search size={19} />} active={activeTab === 'discover'} onClick={() => navigateTo('discover')} />
+            <NavItem label="Friends" icon={<Users size={19} />} active={activeTab === 'social'} onClick={() => navigateTo('social')} />
+            <NavItem label="Profile" icon={<User size={19} />} active={activeTab === 'profile' || activeTab === 'cellar'} onClick={() => navigateTo('profile')} />
             
             {/* Floating Center Scan Button */}
-            <div className="relative -top-5">
+            <div className="relative -top-6">
               <button 
                 onClick={() => requireVerifiedAccess('scan')}
-                className="w-14 h-14 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
+                aria-label="Scan wine"
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C8A24A] to-[#B38E36] text-[#050505] flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(200,162,74,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 relative group overflow-hidden border border-[#C8A24A]"
               >
                 <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
                 <ScanLine size={22} />
+                <span className="text-[8px] font-black uppercase tracking-wider mt-0.5">Scan</span>
               </button>
             </div>
-
-            <NavItem icon={<Heart size={20} className={activeTab === 'cupido' ? 'text-[#8B1538] fill-[#8B1538]' : ''} />} active={activeTab === 'cupido'} onClick={() => requireVerifiedAccess('cupido')} />
-            <NavItem icon={<User size={20} />} active={activeTab === 'profile'} onClick={() => navigateTo('profile')} />
           </nav>
         </div>
       )}
@@ -474,15 +480,17 @@ export default function App() {
   );
 }
 
-function NavItem({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) {
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`p-2 transition-all duration-300 relative ${
+      aria-label={label}
+      className={`p-1.5 min-w-12 flex flex-col items-center gap-1 transition-all duration-300 relative ${
         active ? 'text-[#C8A24A] scale-110' : 'text-[#F2E7D5]/40 hover:text-[#F2E7D5]/80 hover:scale-105'
       }`}
     >
       {icon}
+      <span className="text-[8px] font-mono uppercase tracking-wider leading-none">{label}</span>
       {active && (
          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C8A24A] shadow-[0_0_8px_rgba(200,162,74,0.8)]" />
       )}

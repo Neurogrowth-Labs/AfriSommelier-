@@ -1,91 +1,94 @@
+import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Users, ShoppingBag, Gift, Star } from 'lucide-react';
+import { AtSign, Camera, Contact, HelpCircle, Library, Search, Star, UserPlus, Users } from 'lucide-react';
+
+const friendSources = [
+  { label: 'Google', icon: <Search size={16} /> },
+  { label: 'Facebook', icon: <AtSign size={16} /> },
+  { label: 'Twitter', icon: <AtSign size={16} /> },
+  { label: 'Contacts', icon: <Contact size={16} /> },
+];
+
+const communityUsers = [
+  { name: 'Naledi M.', detail: 'Chenin explorer • Paarl', action: 'Follow' },
+  { name: 'Aiden K.', detail: 'Pinotage collector • Stellenbosch', action: 'Follow' },
+  { name: 'Lerato S.', detail: 'Sparkling wine guide • Franschhoek', action: 'Follow' },
+];
 
 export default function SocialTab() {
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto">
-      <motion.div 
+    <div className="pb-32 p-6 w-full">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-10"
+        className="mb-8"
       >
-        <h2 className="text-4xl md:text-5xl font-serif font-light mb-4">Wine <span className="italic text-accent">Community</span></h2>
-        <p className="text-ink-light max-w-2xl text-sm md:text-base leading-relaxed">
-          Connect with friends, follow top sommeliers, and discover what the community is drinking.
+        <div className="text-[10px] tracking-[0.2em] font-mono text-[#C8A24A] uppercase mb-3 flex items-center gap-2">
+          <div className="w-6 h-px bg-[#C8A24A]/40" />
+          Friends
+        </div>
+        <h2 className="text-4xl font-serif font-light mb-3 text-[#F2E7D5]">Wine <span className="italic text-[#C8A24A]">Community</span></h2>
+        <p className="text-[#F2E7D5]/60 text-sm leading-relaxed">
+          Find friends, follow trusted tasters, post photos and rate wines from one social hub.
         </p>
       </motion.div>
 
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <ActionCard 
-          icon={<Users className="text-olive" />}
-          title="Party Mode"
-          description="Scan multiple wines to rank the best for your group's taste profile."
-        />
-        <ActionCard 
-          icon={<ShoppingBag className="text-accent" />}
-          title="Marketplace"
-          description="Buy directly from local vineyards and specialized merchants."
-        />
-        <ActionCard 
-          icon={<Gift className="text-ink-light" />}
-          title="AI Gift Engine"
-          description="Find the perfect bottle for a boss, partner, or client."
-        />
-      </div>
-
-      {/* Social Feed */}
-      <div>
-        <h3 className="text-2xl font-serif font-medium mb-6">Trending in Cape Town</h3>
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm text-center">
-            <p className="text-ink-light text-sm">No recent activity from your network. Connect with more friends to see what they are drinking.</p>
-          </div>
+      <section className="mb-8">
+        <h3 className="text-sm font-mono uppercase tracking-[0.18em] text-[#C8A24A] mb-3">Find Friends</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {friendSources.map((source) => (
+            <button key={source.label} className="bg-[#0A0A0A]/90 border border-[#C8A24A]/20 rounded-2xl p-4 text-left text-[#F2E7D5] hover:border-[#C8A24A]/50 transition-colors flex items-center gap-3">
+              <span className="text-[#C8A24A]">{source.icon}</span>
+              <span className="text-sm font-semibold">{source.label}</span>
+            </button>
+          ))}
         </div>
-      </div>
+      </section>
+
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-mono uppercase tracking-[0.18em] text-[#C8A24A]">User List</h3>
+          <Users size={16} className="text-[#C8A24A]" />
+        </div>
+        <div className="space-y-3">
+          {communityUsers.map((user) => (
+            <div key={user.name} className="bg-[#0A0A0A]/90 border border-white/10 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-[#8B1538]/30 border border-[#C8A24A]/30 flex items-center justify-center text-[#C8A24A] font-serif font-bold">
+                {user.name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white">{user.name}</p>
+                <p className="text-[11px] text-gray-400 truncate">{user.detail}</p>
+              </div>
+              <button className="px-3 py-2 rounded-full bg-[#C8A24A] text-black text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                <UserPlus size={12} /> {user.action}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 mb-8">
+        <ActionCard icon={<Camera size={18} />} title="Post a Photo" description="Open camera or choose from photo library." />
+        <ActionCard icon={<Star size={18} />} title="Rate a Wine" description="Pick a wine and add your rating." />
+        <ActionCard icon={<Library size={18} />} title="Photo Library" description="Select a label or tasting moment." />
+        <ActionCard icon={<HelpCircle size={18} />} title="How To" description="Learn how community features work." />
+      </section>
     </div>
   );
 }
 
-function ActionCard({ icon, title, description }: any) {
+function ActionCard({ icon, title, description }: { icon: ReactNode, title: string, description: string }) {
   return (
-    <motion.div 
-      whileHover={{ y: -5 }}
-      className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm cursor-pointer group"
+    <motion.button
+      whileHover={{ y: -3 }}
+      className="bg-[#0A0A0A]/90 border border-white/10 p-4 rounded-2xl text-left hover:border-[#C8A24A]/40 transition-colors min-h-32"
     >
-      <div className="mb-4 bg-bg w-12 h-12 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+      <div className="mb-3 bg-[#C8A24A]/10 w-10 h-10 rounded-full flex items-center justify-center text-[#C8A24A]">
         {icon}
       </div>
-      <h4 className="font-serif text-xl font-medium mb-2">{title}</h4>
-      <p className="text-sm text-ink-light leading-relaxed">{description}</p>
-    </motion.div>
-  );
-}
-
-function FeedItem({ user, role, action, wine, rating, comment, time, avatar }: any) {
-  return (
-    <div className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm flex gap-4">
-      <img src={avatar} alt={user} className="w-12 h-12 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
-      <div className="flex-1">
-        <div className="flex justify-between items-start mb-1">
-          <div>
-            <span className="font-medium">{user}</span>
-            <span className="text-ink-light text-xs ml-2 px-2 py-0.5 bg-bg rounded-full">{role}</span>
-          </div>
-          <span className="text-xs text-ink-light">{time}</span>
-        </div>
-        <p className="text-sm text-ink-light mb-2">
-          {action} <span className="font-medium text-ink">{wine}</span>
-        </p>
-        {rating && (
-          <div className="flex gap-1 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={14} className={i < rating ? "fill-accent text-accent" : "text-black/10"} />
-            ))}
-          </div>
-        )}
-        <p className="text-sm leading-relaxed">{comment}</p>
-      </div>
-    </div>
+      <h4 className="font-serif text-base font-semibold mb-1 text-white">{title}</h4>
+      <p className="text-[11px] text-gray-400 leading-relaxed">{description}</p>
+    </motion.button>
   );
 }
