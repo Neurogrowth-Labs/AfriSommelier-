@@ -28,3 +28,13 @@ test('schema defines grape on wishlist for saved wine metadata', () => {
   assert.match(schema, /create table if not exists public\.wishlist \([\s\S]*?grape text,/);
   assert.match(schema, /alter table public\.wishlist add column if not exists grape text;/);
 });
+
+test('schema enables connected app access policies for wishlist and public catalog reads', () => {
+  assert.match(schema, /create policy wishlist_owner_manage on public\.wishlist/);
+  assert.match(schema, /for all using \(auth\.uid\(\) = user_id or public\.is_admin\(\)\)/);
+  assert.match(schema, /create policy wines_public_read on public\.wines for select using \(true\);/);
+});
+
+test('schema admin policy block has balanced conditional endings', () => {
+  assert.doesNotMatch(schema, /end if;\s*end if;\s*\n\s*if not exists/);
+});

@@ -464,6 +464,45 @@ begin
     create policy news_admin_manage on public.news for all using (public.is_admin()) with check (public.is_admin());
   end if;
 
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_owner_read') then
+    create policy profiles_owner_read on public.profiles for select using (auth.uid() = id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_owner_update') then
+    create policy profiles_owner_update on public.profiles for update using (auth.uid() = id or public.is_admin()) with check (auth.uid() = id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'wines' and policyname = 'wines_public_read') then
+    create policy wines_public_read on public.wines for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'news' and policyname = 'news_public_read') then
+    create policy news_public_read on public.news for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cellar' and policyname = 'cellar_owner_manage') then
+    create policy cellar_owner_manage on public.cellar for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'wishlist' and policyname = 'wishlist_owner_manage') then
+    create policy wishlist_owner_manage on public.wishlist for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'consumption' and policyname = 'consumption_owner_manage') then
+    create policy consumption_owner_manage on public.consumption for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'events' and policyname = 'events_owner_manage') then
+    create policy events_owner_manage on public.events for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'reviews' and policyname = 'reviews_owner_manage') then
+    create policy reviews_owner_manage on public.reviews for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'scans' and policyname = 'scans_owner_manage') then
+    create policy scans_owner_manage on public.scans for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
 
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'kyc_verifications' and policyname = 'kyc_owner_read') then
     create policy kyc_owner_read on public.kyc_verifications
