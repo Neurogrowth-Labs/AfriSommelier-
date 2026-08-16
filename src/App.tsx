@@ -403,7 +403,6 @@ export default function App() {
             {activeTab === 'ai' && <SommelierChat onClose={() => navigateTo('home')} initialMessage={initialChatState} />}
             {activeTab === 'cellar' && <CellarTab initialViewMode={cellarSubView} onSelectWine={setSelectedWine} onNavigate={navigateTo} />}
             {activeTab === 'cupido' && <CupidoTab />}
-            {activeTab === 'social' && <SocialTab />}
             {activeTab === 'profile' && <ProfileTab onNavigate={(tab) => navigateTo(tab, tab === 'cellar' ? { view: 'cellar' } : undefined)} />}
             {activeTab === 'trending' && <TrendingTab onBack={() => navigateTo('home')} initialFilter={initialDiscoverState?.filter || 'All Trends'} />}
             {activeTab === 'pairings' && <PairWithDinnerPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />}
