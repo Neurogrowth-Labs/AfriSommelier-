@@ -35,6 +35,14 @@ test('schema enables connected app access policies for wishlist and public catal
   assert.match(schema, /create policy wines_public_read on public\.wines for select using \(true\);/);
 });
 
+test('schema secures Cupido data and prevents client-side membership escalation', () => {
+  assert.match(schema, /alter table public\.cupido_profiles enable row level security;/);
+  assert.match(schema, /create policy cupido_matches_participant_read on public\.cupido_matches/);
+  assert.match(schema, /create policy cupido_messages_sender_insert on public\.cupido_messages/);
+  assert.match(schema, /create or replace function public\.protect_cupido_membership\(\)/);
+  assert.match(schema, /new\.is_premium := old\.is_premium/);
+});
+
 test('schema admin policy block has balanced conditional endings', () => {
   assert.doesNotMatch(schema, /end if;\s*end if;\s*\n\s*if not exists/);
 });

@@ -166,7 +166,8 @@ export default function CupidoTab() {
   const [activeDateStep, setActiveDateStep] = useState<'invite' | 'round1' | 'round2' | 'round3' | 'completed'>('invite');
   const [dateScore, setDateScore] = useState(0);
   const [showGoldModal, setShowGoldModal] = useState(false);
-  const [isPremium, setIsPremium] = useState(() => localStorage.getItem('cupido_gold_subscription') === 'active');
+  // Membership is server-authorized. Never trust a browser flag for paid access.
+  const [isPremium, setIsPremium] = useState(false);
   
   // Event registration states
   const [registeredEventIds, setRegisteredEventIds] = useState<string[]>([]);
@@ -236,6 +237,29 @@ export default function CupidoTab() {
         } catch {}
       }
     };
+  }, []);
+
+  const refreshMembership = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setIsPremium(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('cupido_profiles')
+      .select('is_premium')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) {
+      console.error('Unable to verify Cupido membership:', error);
+      setIsPremium(false);
+      return;
+    }
+    setIsPremium(data?.is_premium === true);
+  };
+
+  useEffect(() => {
+    void refreshMembership();
   }, []);
 
   // Real-time synchronization loader
@@ -881,7 +905,7 @@ export default function CupidoTab() {
         {/* Premium Gold Promo Modal Overlay */}
         <AnimatePresence>
           {showGoldModal && (
-            <GoldPremiumModal onClose={() => setShowGoldModal(false)} onUpgrade={() => { localStorage.setItem('cupido_gold_subscription', 'active'); setIsPremium(true); setShowGoldModal(false); setHasEntered(true); }} />
+            <GoldPremiumModal onClose={() => setShowGoldModal(false)} onUpgrade={() => { void refreshMembership(); setShowGoldModal(false); }} />
           )}
         </AnimatePresence>
       </div>
