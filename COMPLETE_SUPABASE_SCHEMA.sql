@@ -372,6 +372,36 @@ alter table public.events enable row level security;
 alter table public.reviews enable row level security;
 alter table public.news enable row level security;
 alter table public.scans enable row level security;
+alter table public.cupido_profiles enable row level security;
+alter table public.cupido_swipes enable row level security;
+alter table public.cupido_matches enable row level security;
+alter table public.cupido_conversations enable row level security;
+alter table public.cupido_messages enable row level security;
+alter table public.cupido_virtual_dates enable row level security;
+alter table public.cupido_event_registrations enable row level security;
+
+-- Paid membership may only be changed by a trusted server-side payment webhook.
+-- This prevents a browser client from granting itself access by updating is_premium.
+create or replace function public.protect_cupido_membership()
+returns trigger
+language plpgsql
+as $$
+begin
+  if auth.role() <> 'service_role' and not public.is_admin() then
+    if tg_op = 'INSERT' then
+      new.is_premium := false;
+    else
+      new.is_premium := old.is_premium;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists cupido_profiles_protect_membership on public.cupido_profiles;
+create trigger cupido_profiles_protect_membership
+before insert or update on public.cupido_profiles
+for each row execute function public.protect_cupido_membership();
 
 do $$
 begin
@@ -413,6 +443,37 @@ begin
 
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'scans' and policyname = 'scans_owner_manage') then
     create policy scans_owner_manage on public.scans for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_profiles' and policyname = 'cupido_profiles_authenticated_read') then
+    create policy cupido_profiles_authenticated_read on public.cupido_profiles for select using (auth.uid() is not null);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_profiles' and policyname = 'cupido_profiles_owner_insert') then
+    create policy cupido_profiles_owner_insert on public.cupido_profiles for insert with check (auth.uid() = id or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_profiles' and policyname = 'cupido_profiles_owner_update') then
+    create policy cupido_profiles_owner_update on public.cupido_profiles for update using (auth.uid() = id or public.is_admin()) with check (auth.uid() = id or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_swipes' and policyname = 'cupido_swipes_owner_manage') then
+    create policy cupido_swipes_owner_manage on public.cupido_swipes for all using (auth.uid() = sender_id or public.is_admin()) with check (auth.uid() = sender_id or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_matches' and policyname = 'cupido_matches_participant_read') then
+    create policy cupido_matches_participant_read on public.cupido_matches for select using (auth.uid() in (user_one_id, user_two_id) or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_conversations' and policyname = 'cupido_conversations_participant_read') then
+    create policy cupido_conversations_participant_read on public.cupido_conversations for select using (auth.uid() in (user_one_id, user_two_id) or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_messages' and policyname = 'cupido_messages_participant_read') then
+    create policy cupido_messages_participant_read on public.cupido_messages for select using (exists (select 1 from public.cupido_conversations c where c.id = conversation_id and auth.uid() in (c.user_one_id, c.user_two_id)) or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_messages' and policyname = 'cupido_messages_sender_insert') then
+    create policy cupido_messages_sender_insert on public.cupido_messages for insert with check (auth.uid() = sender_id and exists (select 1 from public.cupido_conversations c where c.id = conversation_id and auth.uid() in (c.user_one_id, c.user_two_id)));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_virtual_dates' and policyname = 'cupido_virtual_dates_participant_manage') then
+    create policy cupido_virtual_dates_participant_manage on public.cupido_virtual_dates for all using (auth.uid() in (host_user_id, guest_user_id) or public.is_admin()) with check (auth.uid() in (host_user_id, guest_user_id) or public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cupido_event_registrations' and policyname = 'cupido_event_registrations_owner_manage') then
+    create policy cupido_event_registrations_owner_manage on public.cupido_event_registrations for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
   end if;
 end $$;
 
